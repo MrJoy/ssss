@@ -1,6 +1,7 @@
 /*
- *  ssss version 0.5  -  Copyright 2005,2006 B. Poettering
- * 
+ *  ssss version 0.5                  -  Copyright 2005,2006 B. Poettering
+ *  ssss version 0.5.1 (changes only) -  Copyright 2011 Jon D. Frisby
+ *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
  *  published by the Free Software Foundation; either version 2 of the
@@ -19,13 +20,16 @@
 
 /*
  * http://point-at-infinity.org/ssss/
+ * https://github.com/MrJoy/ssss
  *
- * This is an implementation of Shamir's Secret Sharing Scheme. See 
- * the project's homepage http://point-at-infinity.org/ssss/ for more 
+ * This is an implementation of Shamir's Secret Sharing Scheme. See
+ * the project's homepage http://point-at-infinity.org/ssss/ for more
  * information on this topic.
  *
  * This code links against the GNU multiprecision library "libgmp".
- * I compiled the code successfully with gmp 4.1.4.
+ * Original author compiled the code successfully with gmp 4.1.4.
+ * Jon Frisby compiled the code successfully with gmp 5.0.2.
+ *
  * You will need a system that has a /dev/random entropy source.
  *
  * Compile with 
@@ -33,8 +37,11 @@
  *
  * Compile with -DNOMLOCK to obtain a version without memory locking.
  *
+ * If you encounter compile issues, compile with USE_RESTORE_SECRET_WORKAROUND.
+ *
  * Report bugs to: ssss AT point-at-infinity.org
- *  
+ * Also report compilation / usability issues to: jfrisby AT mrjoy.com
+ *
  */
 
 #include <stdlib.h>
@@ -50,7 +57,7 @@
 
 #include <gmp.h>
 
-#define VERSION "0.5"
+#define VERSION "0.5.1"
 #define RANDOM_SOURCE "/dev/random"
 #define MAXDEGREE 1024
 #define MAXTOKENLEN 128
@@ -348,7 +355,11 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 #define MPZ_SWAP(A, B) \
   do { mpz_set(h, A); mpz_set(A, B); mpz_set(B, h); } while(0)
 
-int restore_secret(int n, mpz_t (*A)[n], mpz_t b[]) 
+#ifdef USE_RESTORE_SECRET_WORKAROUND
+int restore_secret(int n, void *A, mpz_t b[])
+#else
+int restore_secret(int n, mpz_t (*A)[n], mpz_t b[])
+#endif
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k, found;
