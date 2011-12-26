@@ -294,15 +294,16 @@ void decipher_block(uint32_t *v)
   }
 }
 
-void encode_slice(uint8_t *data, int idx, int len, 
-		  void (*process_block)(uint32_t*))
+void encode_slice(uint8_t *data, int idx, int len,
+                  void (*process_block)(uint32_t*))
 {
   uint32_t v[2];
   int i;
   for(i = 0; i < 2; i++)
-    v[i] = data[(idx + 4 * i) % len] << 24 | 
-      data[(idx + 4 * i + 1) % len] << 16 | 
-      data[(idx + 4 * i + 2) % len] << 8 | data[(idx + 4 * i + 3) % len];
+    v[i] = data[(idx + 4 * i) % len] << 24 |
+      data[(idx + 4 * i + 1) % len] << 16 |
+      data[(idx + 4 * i + 2) % len] << 8 |
+      data[(idx + 4 * i + 3) % len];
   process_block(v);
   for(i = 0; i < 2; i++) {
     data[(idx + 4 * i + 0) % len] = v[i] >> 24;
@@ -368,26 +369,26 @@ int restore_secret(int n, mpz_t (*A)[n], mpz_t b[])
   for(i = 0; i < n; i++) {
     if (! mpz_cmp_ui(AA[i][i], 0)) {
       for(found = 0, j = i + 1; j < n; j++)
-	if (mpz_cmp_ui(AA[i][j], 0)) {
-	  found = 1;
-	  break;
-	}
-      if (! found) 
-	return -1;
-      for(k = i; k < n; k++) 
-	MPZ_SWAP(AA[k][i], AA[k][j]);
+        if (mpz_cmp_ui(AA[i][j], 0)) {
+          found = 1;
+          break;
+        }
+      if (! found)
+        return -1;
+      for(k = i; k < n; k++)
+        MPZ_SWAP(AA[k][i], AA[k][j]);
       MPZ_SWAP(b[i], b[j]);
     }
     for(j = i + 1; j < n; j++) {
       if (mpz_cmp_ui(AA[i][j], 0)) {
-	for(k = i + 1; k < n; k++) {
-	  field_mult(h, AA[k][i], AA[i][j]);
-	  field_mult(AA[k][j], AA[k][j], AA[i][i]);
-	  field_add(AA[k][j], AA[k][j], h);
-	}
-	field_mult(h, b[i], AA[i][j]);
-	field_mult(b[j], b[j], AA[i][i]);
-	field_add(b[j], b[j], h);
+        for(k = i + 1; k < n; k++) {
+          field_mult(h, AA[k][i], AA[i][j]);
+          field_mult(AA[k][j], AA[k][j], AA[i][i]);
+          field_add(AA[k][j], AA[k][j], h);
+        }
+        field_mult(h, b[i], AA[i][j]);
+        field_mult(b[j], b[j], AA[i][i]);
+        field_add(b[j], b[j], h);
       }
     }
   }
@@ -408,7 +409,7 @@ void split(void)
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   if (! opt_quiet) {
     fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
-	   opt_threshold, opt_number);
+            opt_threshold, opt_number);
     if (opt_security)
       fprintf(stderr, "a %d bit", opt_security);
     else
@@ -504,12 +505,10 @@ void combine(void)
     if (! s) {
       s = 4 * strlen(b);
       if (! field_size_valid(s))
-	fatal("share has illegal length");
+        fatal("share has illegal length");
       field_init(s);
-    }
-    else
-      if (s != 4 * strlen(b))
-	fatal("shares have different security levels");
+    } else if (s != 4 * strlen(b))
+      fatal("shares have different security levels");
 
     if (! (j = atoi(a)))
       fatal("invalid share");
@@ -614,15 +613,15 @@ int main(int argc, char *argv[])
   if (strstr(name, "split")) {
     if (opt_help || opt_showversion) {
       fputs("Split secrets using Shamir's Secret Sharing Scheme.\n"
-	   "\n"
-	   "ssss-split -t threshold -n shares [-w token] [-s level]"
+            "\n"
+            "ssss-split -t threshold -n shares [-w token] [-s level]"
 #if ! NOMLOCK
-    " [-M]"
+            " [-M]"
 #endif
-	   " [-x] [-q] [-Q] [-D] [-v]",
-	   stderr);
+            " [-x] [-q] [-Q] [-D] [-v]",
+            stderr);
       if (opt_showversion)
-	fputs("\nVersion: " VERSION, stderr);
+        fputs("\nVersion: " VERSION, stderr);
       exit(0);
     }
     
@@ -643,14 +642,15 @@ int main(int argc, char *argv[])
   else {
     if (opt_help || opt_showversion) {
       fputs("Combine shares using Shamir's Secret Sharing Scheme.\n"
-	   "\n"
-	   "ssss-combine -t threshold"
+            "\n"
+            "ssss-combine -t threshold"
 #if ! NOMLOCK
-     " [-M]"
+            " [-M]"
 #endif
-     " [-x] [-q] [-Q] [-D] [-v]", stderr);
+            " [-x] [-q] [-Q] [-D] [-v]",
+            stderr);
       if (opt_showversion)
-	fputs("\nVersion: " VERSION, stderr);
+        fputs("\nVersion: " VERSION, stderr);
       exit(0);
     }
 
