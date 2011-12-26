@@ -553,7 +553,9 @@ int main(int argc, char *argv[])
   int i;
 
 #if ! NOMLOCK
+  int failedMemoryLock = 0;
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+    failedMemoryLock = 1;
     switch(errno) {
     case ENOMEM:
       warning("couldn't get memory lock (ENOMEM, try to adjust RLIMIT_MEMLOCK!)");
@@ -578,7 +580,11 @@ int main(int argc, char *argv[])
   echo_off.c_lflag &= ~ECHO;
 
   opt_help = argc == 1;
+#if ! NOMLOCK
+  while((i = getopt(argc, argv, "MvDhqQxs:t:n:w:")) != -1)
+#else
   while((i = getopt(argc, argv, "vDhqQxs:t:n:w:")) != -1)
+#endif
     switch(i) {
     case 'v': opt_showversion = 1; break;
     case 'h': opt_help = 1; break;
@@ -590,6 +596,12 @@ int main(int argc, char *argv[])
     case 'n': opt_number = atoi(optarg); break;
     case 'w': opt_token = optarg; break;
     case 'D': opt_diffusion = 0; break;
+#if ! NOMLOCK
+    case 'M':
+      if(failedMemoryLock != 0)
+        fatal("memory lock is required to proceed");
+      break;
+#endif
     default:
       exit(1);
     }
@@ -604,8 +616,11 @@ int main(int argc, char *argv[])
       fputs("Split secrets using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
 	   "ssss-split -t threshold -n shares [-w token] [-s level]"
+#if ! NOMLOCK
+    " [-M]"
+#endif
 	   " [-x] [-q] [-Q] [-D] [-v]",
-     stderr);
+	   stderr);
       if (opt_showversion)
 	fputs("\nVersion: " VERSION, stderr);
       exit(0);
@@ -629,8 +644,11 @@ int main(int argc, char *argv[])
     if (opt_help || opt_showversion) {
       fputs("Combine shares using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
-	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D] [-v]",
-     stderr);
+	   "ssss-combine -t threshold"
+#if ! NOMLOCK
+     " [-M]"
+#endif
+     " [-x] [-q] [-Q] [-D] [-v]", stderr);
       if (opt_showversion)
 	fputs("\nVersion: " VERSION, stderr);
       exit(0);

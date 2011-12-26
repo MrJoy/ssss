@@ -2,6 +2,7 @@ v0.5.1: (December 2011)
   - Incorporate B. Poettering's compilation fix, via ifdef.  Set
     USE_RESTORE_SECRET_WORKAROUND if you encounter an error about the
     definition of "restore_secret".
+  - Added "-M" option to require a memory lock.
 
 v0.5: (January 2006)
   - introduction of memory locking and tty echo suppression

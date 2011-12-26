@@ -43,6 +43,14 @@ and the reconstruction of a secret using user-provided shares.</p>
 </optdesc>
 </option>
 
+      <option><p><opt>-M</opt></p>
+<optdesc>
+      <p>Require a successful memory lock in order to proceed, and
+      terminate if one was not obtained.  Option is not available if the code
+      was compiled with NOMLOCK.</p>
+</optdesc>
+</option>
+
       <option><p><opt>-w <arg>token</arg></opt></p>
 <optdesc>
       <p>Text token to name shares in order to avoid confusion in case one
