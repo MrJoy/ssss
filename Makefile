@@ -1,4 +1,8 @@
-all: ssss-split ssss-combine ssss.1 ssss.1.html
+all: compile doc
+
+compile: ssss-split ssss-combine
+
+doc: ssss.1 ssss.1.html
 
 ssss-split: ssss.c
 	$(CC) -W -Wall -O2 -lgmp -o ssss-split ssss.c
