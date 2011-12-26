@@ -407,14 +407,14 @@ void split(void)
   int deg, i;
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   if (! opt_quiet) {
-    printf("Generating shares using a (%d,%d) scheme with ", 
+    fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
 	   opt_threshold, opt_number);
     if (opt_security)
-      printf("a %d bit", opt_security);
+      fprintf(stderr, "a %d bit", opt_security);
     else
-      printf("dynamic");
-    printf(" security level.\n");
-    
+      fprintf(stderr, "dynamic");
+    fprintf(stderr, " security level.\n");
+
     deg = opt_security ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
@@ -461,8 +461,8 @@ void split(void)
     mpz_set_ui(x, i + 1);
     horner(opt_threshold, y, x, (const mpz_t*)coeff);
     if (opt_token)
-      printf("%s-", opt_token);
-    printf("%0*d-", fmt_len, i + 1);
+      fprintf(stdout, "%s-", opt_token);
+    fprintf(stdout, "%0*d-", fmt_len, i + 1);
     field_print(stdout, y, 1);
   }
   mpz_clear(x);
@@ -485,11 +485,11 @@ void combine(void)
 
   mpz_init(x);
   if (! opt_quiet)
-    printf("Enter %d shares separated by newlines:\n", opt_threshold);
+    fprintf(stderr, "Enter %d shares separated by newlines:\n", opt_threshold);
   for (i = 0; i < opt_threshold; i++) {
     if (! opt_quiet)
-      printf("Share [%d/%d]: ", i + 1, opt_threshold);
-  
+      fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
+
     if (! fgets(buf, sizeof(buf), stdin))
       fatal("I/O error while reading shares");
     buf[strcspn(buf, "\r\n")] = '\0';
@@ -536,9 +536,9 @@ void combine(void)
   }
 
   if (! opt_quiet)
-    fprintf(stderr, "Resulting secret: "); 
-  field_print(stderr, y[opt_threshold - 1], opt_hex);
-  
+    fprintf(stderr, "Resulting secret: ");
+  field_print(stdout, y[opt_threshold - 1], opt_hex);
+
   for (i = 0; i < opt_threshold; i++) {
     for (j = 0; j < opt_threshold; j++)
       mpz_clear(A[i][j]);
@@ -601,13 +601,13 @@ int main(int argc, char *argv[])
 
   if (strstr(name, "split")) {
     if (opt_help || opt_showversion) {
-      puts("Split secrets using Shamir's Secret Sharing Scheme.\n"
+      fputs("Split secrets using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
 	   "ssss-split -t threshold -n shares [-w token] [-s level]"
-	   " [-x] [-q] [-Q] [-D] [-v]"
-	   );
+	   " [-x] [-q] [-Q] [-D] [-v]",
+     stderr);
       if (opt_showversion)
-	puts("\nVersion: " VERSION);
+	fputs("\nVersion: " VERSION, stderr);
       exit(0);
     }
     
@@ -627,11 +627,12 @@ int main(int argc, char *argv[])
   }
   else {
     if (opt_help || opt_showversion) {
-      puts("Combine shares using Shamir's Secret Sharing Scheme.\n"
+      fputs("Combine shares using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
-	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D] [-v]");
+	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D] [-v]",
+     stderr);
       if (opt_showversion)
-	puts("\nVersion: " VERSION);
+	fputs("\nVersion: " VERSION, stderr);
       exit(0);
     }
 
