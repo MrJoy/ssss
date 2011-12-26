@@ -272,7 +272,7 @@ void cprng_read(mpz_t x)
 
 /* a 64 bit pseudo random permutation (based on the XTEA cipher) */
 
-void encipher_block(uint32_t *v) 
+void encipher_block(uint32_t *v)
 {
   uint32_t sum = 0, delta = 0x9E3779B9;
   int i;
@@ -420,7 +420,7 @@ void split(void)
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
       fprintf(stderr, "as most %d hex digits: ", deg / 4);
-    else 
+    else
       fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
@@ -445,10 +445,10 @@ void split(void)
   if (opt_diffusion) {
     if (degree >= 64)
       encode_mpz(coeff[0], ENCODE);
-    else 
+    else
       warning("security level too small for the diffusion layer");
   }
-  
+
   cprng_init();
   for(i = 1; i < opt_threshold; i++) {
     mpz_init(coeff[i]);
@@ -530,7 +530,7 @@ void combine(void)
   if (opt_diffusion) {
     if (degree >= 64)
       encode_mpz(y[opt_threshold - 1], DECODE);
-    else 
+    else
       warning("security level too small for the diffusion layer");
   }
 
@@ -624,7 +624,7 @@ int main(int argc, char *argv[])
         fputs("\nVersion: " VERSION, stderr);
       exit(0);
     }
-    
+
     if (opt_threshold < 2)
       fatal("invalid parameters: invalid threshold value");
 
