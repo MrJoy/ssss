@@ -11,13 +11,13 @@ v0.4: (October 2005)
   - the security level now can be chosen freely in the range
       8..1024 bits in steps of 8.
 
-v0.3: (July 2005) 
+v0.3: (July 2005)
   - separation of ssss into ssss-split and ssss-combine
   - introduction of a man page
 
-v0.2: (June 2005) 
+v0.2: (June 2005)
   - introduction of the diffusion layer
 
-v0.1: (May 2005) 
+v0.1: (May 2005)
   - initial release
 

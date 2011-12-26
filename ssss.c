@@ -32,7 +32,7 @@
  *
  * You will need a system that has a /dev/random entropy source.
  *
- * Compile with 
+ * Compile with
  * "gcc -O2 -lgmp -o ssss-split ssss.c && ln ssss-split ssss-combine"
  *
  * Compile with -DNOMLOCK to obtain a version without memory locking.
