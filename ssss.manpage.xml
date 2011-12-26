@@ -148,10 +148,14 @@ obtaining the desired mlock.
 </section>
 
 <section name="Author">
-        This software (v0.5) was written in 2006 by B. Poettering
+        The original software (v0.5) was written in 2006 by B. Poettering
         (ssss AT point-at-infinity.org). Find the newest version of
         ssss on the project's homepage: <url
         href="http://point-at-infinity.org/ssss/"/>.
+
+        The amended version (v0.5.1) was written in 2011 by Jon D Frisby
+        (jfrisby AT mrjoy.com).  Find the newest version on github: <url
+        href="https://github.com/MrJoy/ssss"/>.
 </section>
 
 <section name="Further reading">
