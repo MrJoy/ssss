@@ -2,9 +2,10 @@
 
 ## Prerequisites
 
-1. You will need a proper C toolchain (e.g. GCC).
-2. You will need libgmp to compile the binaries.
-3. You will need [xmltoman](http://sourceforge.net/projects/xmltoman/) to generate man pages.  If you do not have this, the build will fail but you can ignore that and proceed.
+1. You will need to be on a system with a proper `/dev/random`.
+2. You will need a proper C toolchain (e.g. GCC).
+3. You will need libgmp to compile the binaries.
+4. You will need [xmltoman](http://sourceforge.net/projects/xmltoman/) to generate man pages.  If you do not have this, the build will fail but you can ignore that and proceed.
 
 ## Compiling on MacOS X
 
