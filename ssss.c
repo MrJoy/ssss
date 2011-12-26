@@ -356,11 +356,13 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 #define MPZ_SWAP(A, B) \
   do { mpz_set(h, A); mpz_set(A, B); mpz_set(B, h); } while(0)
 
+int restore_secret(int n,
 #ifdef USE_RESTORE_SECRET_WORKAROUND
-int restore_secret(int n, void *A, mpz_t b[])
+                   void *A,
 #else
-int restore_secret(int n, mpz_t (*A)[n], mpz_t b[])
+                   mpz_t (*A)[n],
 #endif
+                   mpz_t b[])
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k, found;
@@ -579,11 +581,14 @@ int main(int argc, char *argv[])
   echo_off.c_lflag &= ~ECHO;
 
   opt_help = argc == 1;
+  const char* flags =
 #if ! NOMLOCK
-  while((i = getopt(argc, argv, "MvDhqQxs:t:n:w:")) != -1)
+    "MvDhqQxs:t:n:w:";
 #else
-  while((i = getopt(argc, argv, "vDhqQxs:t:n:w:")) != -1)
+    "vDhqQxs:t:n:w:";
 #endif
+
+  while((i = getopt(argc, argv, flags)) != -1)
     switch(i) {
     case 'v': opt_showversion = 1; break;
     case 'h': opt_help = 1; break;
