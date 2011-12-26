@@ -4,11 +4,11 @@
 <?xml-stylesheet type="text/xsl"
 href="http://masqmail.cx/xmltoman/xmltoman.xsl" ?>
 
-<manpage name="ssss" section="1" 
+<manpage name="ssss" section="1"
   desc="Split and Combine Secrets using Shamir's Secret Sharing Scheme.">
 
 <synopsis>
-      <cmd>ssss-split -t <arg>threshold</arg> -n <arg>shares</arg> [-w <arg>token</arg>] 
+      <cmd>ssss-split -t <arg>threshold</arg> -n <arg>shares</arg> [-w <arg>token</arg>]
          [-s <arg>level</arg>] [-x] [-q] [-Q] [-D] [-v]</cmd>
       <cmd>ssss-combine -t <arg>threshold</arg> [-x] [-q] [-Q] [-D] [-v]</cmd>
 </synopsis>
@@ -22,7 +22,7 @@ and the reconstruction of a secret using user-provided shares.</p>
 <section name ="Commands">
       <p><opt>ssss-split</opt>: prompt the user for a secret and generate a set of
       corresponding shares.</p>
-      
+
       <p><opt>ssss-combine</opt>: read in a set of shares and reconstruct
       the secret.</p>
 </section>
@@ -33,7 +33,7 @@ and the reconstruction of a secret using user-provided shares.</p>
 <p><opt>-t <arg>threshold</arg></opt></p> <optdesc>
 <p>Specify the number of
       shares necessary to reconstruct the secret.</p></optdesc>
-    
+
 </option>
 
       <option>
@@ -41,16 +41,16 @@ and the reconstruction of a secret using user-provided shares.</p>
 <optdesc>
       <p>Specify the number of shares to be generated.</p>
 </optdesc>
-</option>      
-      
+</option>
+
       <option><p><opt>-w <arg>token</arg></opt></p>
 <optdesc>
       <p>Text token to name shares in order to avoid confusion in case one
       utilizes secret sharing to protect several independent secrets. The
       generated shares are prefixed by these tokens.</p>
 </optdesc>
-</option>      
-      
+</option>
+
       <option><p><opt>-s <arg>level</arg></opt></p>
 <optdesc>
       <p>Enforce the scheme's security level (in bits). This option
@@ -61,7 +61,7 @@ and the reconstruction of a secret using user-provided shares.</p>
       depending on the secret's length.  The security level directly
       determines the length of the shares.</p>
 </optdesc>
-</option>      
+</option>
 
       <option><p><opt>-x</opt></p>
 <optdesc>
@@ -69,20 +69,20 @@ and the reconstruction of a secret using user-provided shares.</p>
       I/O. This is useful if one wants to protect binary data, like
       block cipher keys.</p>
 </optdesc>
-</option>      
+</option>
 
       <option><p><opt>-q</opt></p>
 <optdesc>
       <p>Quiet mode: disable all unnecessary output. Useful in scripts.
       </p>
 </optdesc>
-</option>      
+</option>
       <option><p><opt>-Q</opt></p>
 <optdesc>
       <p>Extra quiet mode: like <opt>-q</opt>, but also suppress
 warnings.</p>
 </optdesc>
-</option>      
+</option>
 
       <option><p><opt>-D</opt></p>
 <optdesc>
@@ -90,13 +90,13 @@ warnings.</p>
       is needed when shares are combined that where generated with
       ssss version 0.1.</p>
 </optdesc>
-</option>      
+</option>
 
       <option><p><opt>-v</opt></p>
 <optdesc>
       <p>Print version information.</p>
 </optdesc>
-</option>      
+</option>
 </options>
 
 <section name="Example">
