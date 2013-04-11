@@ -1,0 +1,11 @@
+# Build products:
+/ssss-combine
+/ssss-split
+
+# Generated man pages:
+/ssss.1
+/ssss-combine.1
+/ssss-split.1
+
+# Generated HTML documentation:
+/ssss.1.html
