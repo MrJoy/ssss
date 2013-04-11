@@ -1,3 +1,6 @@
+v0.5.3: (April 2013)
+  - Corrected an error in the docs.
+
 v0.5.2: (April 2013)
   - Add finer-grained build tasks (`make compile`, and `make doc`).
   - Add `make install` task.
