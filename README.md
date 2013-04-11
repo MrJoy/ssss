@@ -51,8 +51,12 @@ Before installing, when cloning this repo, use a signed tag and verify the
 signature first!
 
 ```bash
+# First, you need to make sure you have the signing key in your GPG keychain:
+gpg --keyserver sks.keyservers.net --recv-key 7DCB12A7
+
+# Now, clone the repo, and verify it:
 git clone http://github.com/MrJoy/ssss.git
-git tag -v v0.5.2
+git tag -v v0.5.3
 # You should see output to the effect of:
 #   gpg: Signature made <date and time> using RSA key ID 7DCB12A7
 #   gpg: Good signature from "Jon Frisby <jfrisby@mrjoy.com>"
@@ -60,15 +64,12 @@ git tag -v v0.5.2
 # If you do NOT see 'Good Signature from "Jon Frisby <jfrisby@mrjoy.com>" and
 # the RSA key ID 7DCB12A7 then do not proceed with installation!
 #
-git checkout v0.5.2 # This will put you in 'detached head' mode, which is fine
+git checkout v0.5.3 # This will put you in 'detached head' mode, which is fine
                     # but don't make changes as you are no longer on a branch!
 # Proceed with build steps from here.  See `INSTALL.md` for details.
 ```
 
-You can always find my GPG key signature at [MrJoy.com](http://MrJoy.com).  You
-will need to import the key into your keyring or you will get a warning about
-an unknown key.  As long as the fingerprint and name/email match however,
-you're good to go.
+You can always find my GPG key signature at [MrJoy.com](http://MrJoy.com).
 
 
 ## Status
