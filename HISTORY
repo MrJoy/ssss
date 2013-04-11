@@ -1,3 +1,9 @@
+v0.5.2: (April 2013)
+  - Add finer-grained build tasks (`make compile`, and `make doc`).
+  - Add `make install` task.
+  - Update installation instructions to have some general advice for normal
+    Unix-users, and to be more up to date for OS X users.
+
 v0.5.1: (December 2011)
   - Incorporate B. Poettering's compilation fix, via ifdef.  Set
     USE_RESTORE_SECRET_WORKAROUND if you encounter an error about the
