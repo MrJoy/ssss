@@ -623,7 +623,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
             " [-M]"
 #endif
-            " [-x] [-q] [-Q] [-D] [-v]",
+            " [-x] [-q] [-Q] [-D] [-v]\n",
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
@@ -652,7 +652,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
             " [-M]"
 #endif
-            " [-x] [-q] [-Q] [-D] [-v]",
+            " [-x] [-q] [-Q] [-D] [-v]\n",
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
