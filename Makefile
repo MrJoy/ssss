@@ -13,10 +13,7 @@ ssss-combine: ssss-split
 
 ssss.1: ssss.manpage.xml
 	if [ `which xmltoman` ]; then xmltoman ssss.manpage.xml > ssss.1; else echo "WARNING: xmltoman not found, skipping generate of man page."; fi
-	if [ -e ssss.1 ]; then
-		cp ssss.1 ssss-split.1
-		cp ssss.1 ssss-combine.1
-	fi
+	if [ -e ssss.1 ]; then cp ssss.1 ssss-split.1; cp ssss.1 ssss-combine.1; fi
 
 ssss.1.html: ssss.manpage.xml
 	if [ `which xmlmantohtml` ]; then xmlmantohtml ssss.manpage.xml > ssss.1.html; else echo "WARNING: xmlmantohtml not found, skipping generation of HTML documentation."; fi
