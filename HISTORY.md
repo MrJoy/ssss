@@ -1,5 +1,10 @@
 # History
 
+## v0.5.4: (October 2013)
+
+* Minor Makefile fix.
+* Add newlines to option display.
+
 ## v0.5.3: (April 2013)
 
 * Corrected an error in the docs.
