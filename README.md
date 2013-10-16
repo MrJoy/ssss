@@ -8,6 +8,21 @@ Shamir's Secret Sharing Scheme
 This is a fork of B. Poettering's SSSS ("Shamir's Secret Sharing Scheme").
 
 
+## Important Update
+
+I've recently adjusted the history of this repo a bit, in order to preserve the
+full history of B. Poettering's work properly.  `master` has been force-updated
+to a new branch, starting from the same initial commit, to which every commit
+I made has been cherry-picked.  I'm using a new convention for release tags:
+
+`releases/vX.Y.Z` instead of just `vX.Y.Z` and have confirmed that the new and
+old tags are all tree-same.  The old tags, and the old history will remain
+around under a `legacy` branch, but moving forward we have a nice clean and
+complete history, with signed tags at every release.
+
+My apologies if the force-update causes any inconvenience.
+
+
 ## Intent
 
 This fork exists to simplify the build process a bit, and make minor changes
