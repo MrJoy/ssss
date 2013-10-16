@@ -1,5 +1,5 @@
 /*
- *  ssss version 0.1  -  Copyright 2005 B. Poettering
+ *  ssss version 0.2  -  Copyright 2005 B. Poettering
  * 
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -28,7 +28,7 @@
  *
  * Compile with "gcc -O2 -lgmp -o ssss ssss.c"
  *
- * Report bugs to: bpssss AT point-at-infinity.org
+ * Report bugs to: ssss AT point-at-infinity.org
  */
 
 #include <stdlib.h>
@@ -36,6 +36,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <assert.h>
 
 #include <gmp.h>
@@ -46,7 +47,7 @@ static const char help_message[] =
 "\n"
 "Syntax:\n"
 "\tssss split -t threshold -n shares [-s level] [-w token] [-x] [-q]\n"
-"\tssss combine -t threshold [-x] [-q]\n"
+"\tssss combine -t threshold [-x] [-q] [-D]\n"
 "\n"
 "Commands:\n"
 "\tsplit: prompt the user for a secret and calculate a set of\n"
@@ -81,6 +82,10 @@ static const char help_message[] =
 "\tquiet mode: disable all unnecessary output. Useful in scripts.\n"
 "\tNote: the option -Q works like -q, but warnings are suppressed also.\n"
 "\n"
+"\t-D\n"
+"\tdisable the diffusion layer added in version 0.2. This option is\n"
+"\tneeded when the shares where generated with ssss version 0.1.\n"
+"\n"
 "Example:\n"
 "\tSuppose you want to protect your login password with a set of 10\n"
 "\tshares, in such a way that any 3 of them can reconstruct the\n"
@@ -98,7 +103,7 @@ static const char help_message[] =
 "\n"
 "Author & Contact:\n"
 "\tThis software was written in 2005 by B. Poettering. Please send bug\n"
-"\treports to bpssss@point-at-infinity.org. Version number: 0.1\n";
+"\treports to ssss@point-at-infinity.org. Version number: 0.2\n";
 
 #define RANDOM_SOURCE "/dev/random"
 #define MAXDEGREE 1024
@@ -109,10 +114,13 @@ int opt_help = 0;
 int opt_quiet = 0;
 int opt_QUIET = 0;
 int opt_hex = 0;
+int opt_diffusion = 1;
 int opt_security = 128;
 int opt_threshold = -1;
 int opt_number = -1;
 char *opt_token = NULL;
+
+int ttyoutput;
 
 unsigned int degree;
 mpz_t poly;
@@ -123,14 +131,14 @@ int cprng;
 
 void fatal(char *msg)
 {
-  fprintf(stderr, "\aFATAL: %s.\n", msg);
+  fprintf(stderr, "%sFATAL: %s.\n", ttyoutput ? "\a" : "", msg);
   exit(1);
 }
 
 void warning(char *msg)
 {
   if (! opt_QUIET)
-    fprintf(stderr, "\aWARNING: %s.\n", msg);
+    fprintf(stderr, "%sWARNING: %s.\n", ttyoutput ? "\a" : "", msg);
 }
 
 int field_size_valid(int deg)
@@ -197,9 +205,9 @@ void field_import(mpz_t x, const char *s, int hexmode)
 {
   if (hexmode) {
     if (strlen(s) > degree / 4)
-      fatal("string too long");
+      fatal("input string too long");
     if (strlen(s) < degree / 4)
-      warning("string too short, adding null padding on the left");
+      warning("input string too short, adding null padding on the left");
     if (mpz_set_str(x, s, 16) || (mpz_cmp_ui(x, 0) < 0))
       fatal("invalid syntax");
   }
@@ -207,7 +215,7 @@ void field_import(mpz_t x, const char *s, int hexmode)
     int i;
     int warn = 0;
     if (strlen(s) > degree / 8)
-      fatal("string too long");
+      fatal("input string too long");
     for(i = strlen(s) - 1; i >= 0; i--)
       warn = warn || (s[i] <= 32) || (s[i] >= 127);
     if (warn)
@@ -273,7 +281,7 @@ void field_mult(mpz_t z, const mpz_t x, const mpz_t y)
 void field_invert(mpz_t z, const mpz_t x)
 {
   mpz_t u, v, g, h;
-  int j;
+  int i;
   assert(mpz_cmp_ui(x, 0));
   mpz_init_set(u, x);
   mpz_init_set(v, poly);
@@ -281,15 +289,15 @@ void field_invert(mpz_t z, const mpz_t x)
   mpz_set_ui(z, 1);
   mpz_init(h);
   while (mpz_cmp_ui(u, 1)) {
-    j = (mpz_sizeinbits(u) + 1) - (mpz_sizeinbits(v) + 1);
-    if (j < 0) {
-      mpz_set(h, u); mpz_set(u, v); mpz_set(v, h);
-      mpz_set(h, z); mpz_set(z, g); mpz_set(g, h);
-      j = -j;
+    i = mpz_sizeinbits(u) - mpz_sizeinbits(v);
+    if (i < 0) {
+      mpz_swap(u, v);
+      mpz_swap(z, g);
+      i = -i;
     }
-    mpz_lshift(h, v, j);
+    mpz_lshift(h, v, i);
     mpz_xor(u, u, h);
-    mpz_lshift(h, g, j);
+    mpz_lshift(h, g, i);
     mpz_xor(z, z, h);
   }
   mpz_clear(u); mpz_clear(v); mpz_clear(g); mpz_clear(h);
@@ -320,6 +328,84 @@ void cprng_read(mpz_t x)
       fatal("couldn't read from " RANDOM_SOURCE);
     }
   mpz_import(x, degree / 8, 1, 1, 0, 0, buf);
+}
+
+/* a pseudo random permutation (based on the XTEA cipher) */
+
+void encipher_block(uint32_t *v) 
+{
+  uint32_t sum = 0, delta = 0x9E3779B9;
+  int i;
+  for(i = 0; i < 32; i++) {
+    v[0] += (((v[1] << 4) ^ (v[1] >> 5)) + v[1]) ^ sum;
+    sum += delta;
+    v[1] += (((v[0] << 4) ^ (v[0] >> 5)) + v[0]) ^ sum;
+  }
+}
+ 
+void decipher_block(uint32_t *v)
+{
+  uint32_t sum = 0xC6EF3720, delta = 0x9E3779B9;
+  int i;
+  for(i = 0; i < 32; i++) {
+    v[1] -= ((v[0] << 4 ^ v[0] >> 5) + v[0]) ^ sum;
+    sum -= delta;
+    v[0] -= ((v[1] << 4 ^ v[1] >> 5) + v[1]) ^ sum;
+  }
+}
+
+void encipher_array(uint16_t *data, int len)
+{
+  int i;
+  uint32_t v[2];
+  for(i = 0; i < 40 * len; i++) { /* 40 seems more than enough! */
+    v[0] = data[(i + 0) % len] << 16 | data[(i + 1) % len];
+    v[1] = data[(i + 2) % len] << 16 | data[(i + 3) % len];
+    encipher_block(v);
+    data[(i + 0) % len] = v[0] >> 16;
+    data[(i + 1) % len] = v[0] & 0xffff;
+    data[(i + 2) % len] = v[1] >> 16;
+    data[(i + 3) % len] = v[1] & 0xffff;
+  }
+}
+
+void decipher_array(uint16_t *data, int len)
+{
+  int i;
+  uint32_t v[2];
+  for(i = 40 * len - 1; i >= 0; i--) {
+    v[0] = data[(i + 0) % len] << 16 | data[(i + 1) % len];
+    v[1] = data[(i + 2) % len] << 16 | data[(i + 3) % len];
+    decipher_block(v);
+    data[(i + 0) % len] = v[0] >> 16;
+    data[(i + 1) % len] = v[0] & 0xffff;
+    data[(i + 2) % len] = v[1] >> 16;
+    data[(i + 3) % len] = v[1] & 0xffff;
+  }
+}
+
+void encipher_mpz(mpz_t x)
+{
+  uint16_t v[MAXDEGREE / 16 + 1];
+  size_t t;
+  mpz_setbit(x, degree);
+  mpz_export(v, &t, -1, 2, 0, 0, x);
+  assert(t == degree / 16 + 1);
+  encipher_array(v, degree / 16);
+  mpz_import(x, degree / 16, -1, 2, 0, 0, v);
+  mpz_clrbit(x, degree);
+}
+
+void decipher_mpz(mpz_t x)
+{
+  uint16_t v[MAXDEGREE / 16 + 1];
+  size_t t;
+  mpz_setbit(x, degree);
+  mpz_export(v, &t, -1, 2, 0, 0, x);
+  assert(t == degree / 16 + 1);
+  decipher_array(v, degree / 16);
+  mpz_import(x, degree / 16, -1, 2, 0, 0, v);
+  mpz_clrbit(x, degree);
 }
 
 /* evaluate polynomials efficiently */
@@ -405,7 +491,9 @@ void split(void)
   buf[strcspn(buf, "\r\n")] = '\0';
   mpz_init(coeff[0]);
   field_import(coeff[0], buf, opt_hex);
-
+  if (opt_diffusion)
+    encipher_mpz(coeff[0]);
+  
   cprng_init();
   for(i = 1; i < opt_threshold; i++) {
     mpz_init(coeff[i]);
@@ -484,7 +572,9 @@ void combine(void)
   }
   mpz_clear(x);
   if (restore_secret(opt_threshold, A, y))
-    fatal("shares inconsistent. Perhaps a single share was used twice?");
+    fatal("shares inconsistent. Perhaps a single share was used twice");
+  if (opt_diffusion)
+    decipher_mpz(y[opt_threshold - 1]);
 
   if (! opt_quiet)
     fprintf(stderr, "Resulting secret: "); 
@@ -501,6 +591,10 @@ void combine(void)
 int main(int argc, char *argv[])
 {
   int i;
+  if ((i = fileno(stderr)) < 0)
+    fatal("couldn't determine fileno of stderr");
+  ttyoutput = isatty(i);
+
   opt_help = argc == 1;
   while((i = getopt(argc, argv, "hqQxs:t:n:w:")) != -1)
     switch(i) {
@@ -512,6 +606,7 @@ int main(int argc, char *argv[])
     case 't': opt_threshold = atoi(optarg); break;
     case 'n': opt_number = atoi(optarg); break;
     case 'w': opt_token = optarg; break;
+    case 'D': opt_diffusion = 0; break;
     default:
       exit(1);
     }
@@ -530,7 +625,7 @@ int main(int argc, char *argv[])
     fatal("invalid parameters: invalid security level");
 
   if (opt_threshold < 2)
-    fatal("invalid parameters: threshold value too small");
+    fatal("invalid parameters: invalid threshold value");
 
   if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
     fatal("invalid parameters: token too long");
