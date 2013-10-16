@@ -1,5 +1,5 @@
 /*
- *  ssss version 0.2  -  Copyright 2005 B. Poettering
+ *  ssss version 0.3  -  Copyright 2005 B. Poettering
  * 
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -26,7 +26,8 @@
  * I compiled the code successfully with gmp 4.1.4.
  * You will need a system that has a /dev/random entropy source.
  *
- * Compile with "gcc -O2 -lgmp -o ssss ssss.c"
+ * Compile with 
+ * "gcc -O2 -lgmp -o ssss-split ssss.c && ln ssss-split ssss-combine"
  *
  * Report bugs to: ssss AT point-at-infinity.org
  */
@@ -40,70 +41,6 @@
 #include <assert.h>
 
 #include <gmp.h>
-
-static const char help_message[] = 
-"\n"
-"An implementation of Shamir's Secret Sharing Scheme.\n"
-"\n"
-"Syntax:\n"
-"\tssss split -t threshold -n shares [-s level] [-w token] [-x] [-q]\n"
-"\tssss combine -t threshold [-x] [-q] [-D]\n"
-"\n"
-"Commands:\n"
-"\tsplit: prompt the user for a secret and calculate a set of\n"
-"\tcorresponding shares.\n"
-"\n"
-"\tcombine: read in a set of shares and reconstruct the secret.\n"
-"\n"
-"Options:\n"
-"\t-t threshold\n"
-"\tthe number of shares necessary to reconstruct the secret.\n"
-"\n"
-"\t-n shares\n"
-"\tthe number of shares to be generated.\n"
-"\n"
-"\t-s level\n"
-"\tsecurity level: the scheme's security level in bits. The security\n"
-"\tlevel is an upper bound for the length of the shared secret\n"
-"\t(shorter secrets are padded). Allowed values are 80, 112, 128,\n"
-"\t192, 256, 512 and 1024. The default is 128.\n"
-"\n"
-"\t-w token\n"
-"\ttext token to name shares in order to avoid confusion in case you\n"
-"\tutilize secret sharing to protect several independent secrets. The\n"
-"\tgenerated shares are prefixed by these tokens.\n"
-"\n"
-"\t-x\n"
-"\thex mode: use hexadecimal digits in place of ASCII characters for\n"
-"\tI/O. This is useful if you want to protect binary data, like\n"
-"\tblock cipher keys.\n"
-"\n"
-"\t-q\n"
-"\tquiet mode: disable all unnecessary output. Useful in scripts.\n"
-"\tNote: the option -Q works like -q, but warnings are suppressed also.\n"
-"\n"
-"\t-D\n"
-"\tdisable the diffusion layer added in version 0.2. This option is\n"
-"\tneeded when the shares where generated with ssss version 0.1.\n"
-"\n"
-"Example:\n"
-"\tSuppose you want to protect your login password with a set of 10\n"
-"\tshares, in such a way that any 3 of them can reconstruct the\n"
-"\tpassword, simply run the command\n"
-"\n"
-"\t  ssss split -t 3 -n 10 -w passwd\n"
-"\n"
-"\tTo reconstruct the password pass 3 of the generated shares (in any\n"
-"\torder) to\n"
-"\n"
-"\t  ssss combine -t 3\n"
-"\n"
-"Further reading:\n"
-"\thttp://en.wikipedia.org/wiki/Secret_sharing\n"
-"\n"
-"Author & Contact:\n"
-"\tThis software was written in 2005 by B. Poettering. Please send bug\n"
-"\treports to ssss@point-at-infinity.org. Version number: 0.2\n";
 
 #define RANDOM_SOURCE "/dev/random"
 #define MAXDEGREE 1024
@@ -590,13 +527,14 @@ void combine(void)
 
 int main(int argc, char *argv[])
 {
+  char *name;
   int i;
   if ((i = fileno(stderr)) < 0)
     fatal("couldn't determine fileno of stderr");
   ttyoutput = isatty(i);
 
   opt_help = argc == 1;
-  while((i = getopt(argc, argv, "hqQxs:t:n:w:")) != -1)
+  while((i = getopt(argc, argv, "DhqQxs:t:n:w:")) != -1)
     switch(i) {
     case 'h': opt_help = 1; break;
     case 'q': opt_quiet = 1; break;
@@ -610,35 +548,47 @@ int main(int argc, char *argv[])
     default:
       exit(1);
     }
+  if (! opt_help && (argc != optind))
+    fatal("invalid argument");
 
-  if (opt_help) {
-    puts(help_message);
-    exit(0);
-  }
+  if ((name = strrchr(argv[0], '/')) == NULL)
+    name = argv[0];
 
-  if (argc - optind < 1)
-    fatal("invalid parameters: no command given");
-  if (argc - optind > 1)
-    fatal("invalid parameters: too many commands given");
+  if (strstr(name, "split")) {
+    if (opt_help) {
+      puts("Split secrets using Shamir's Secret Sharing Scheme.\n"
+	   "\n"
+	   "ssss-split -t threshold -n shares [-s level] [-w token] [-x] [-q] [-Q]");
+      exit(0);
+    }
+    
+    if (opt_threshold < 2)
+      fatal("invalid parameters: invalid threshold value");
 
-  if (! field_size_valid(opt_security))
-    fatal("invalid parameters: invalid security level");
-
-  if (opt_threshold < 2)
-    fatal("invalid parameters: invalid threshold value");
-
-  if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
-    fatal("invalid parameters: token too long");
-
-  if (! strcmp(argv[optind], "split")) {
     if (opt_number < opt_threshold)
       fatal("invalid parameters: number of shares smaller than threshold");
+
+    if (! field_size_valid(opt_security))
+      fatal("invalid parameters: invalid security level");
+
+    if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
+      fatal("invalid parameters: token too long");
+
     split();
   }
-  else if (! strcmp(argv[optind], "combine"))
+  else {
+    if (opt_help) {
+      puts("Combine shares using Shamir's Secret Sharing Scheme.\n"
+	   "\n"
+	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D]");
+      exit(0);
+    }
+
+    if (opt_threshold < 2)
+      fatal("invalid parameters: invalid threshold value");
+
     combine();
-  else
-    fatal("invalid parameters: unknown command");
+  }
 
   return 0;
 }
