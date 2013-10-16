@@ -8,9 +8,9 @@ href="http://masqmail.cx/xmltoman/xmltoman.xsl" ?>
   desc="Split and Combine Secrets using Shamir's Secret Sharing Scheme.">
 
 <synopsis>
-      <cmd>ssss-split -t <arg>threshold</arg> -n <arg>shares</arg> [-s
-      <arg>level</arg>] [-w <arg>token</arg>] [-x] [-q] [-Q]</cmd>
-      <cmd>ssss-combine -t <arg>threshold</arg> [-x] [-q] [-Q] [-D]</cmd>
+      <cmd>ssss-split -t <arg>threshold</arg> -n <arg>shares</arg> [-w <arg>token</arg>] 
+         [-s <arg>level</arg>] [-x] [-q] [-Q] [-D] [-v]</cmd>
+      <cmd>ssss-combine -t <arg>threshold</arg> [-x] [-q] [-Q] [-D] [-v]</cmd>
 </synopsis>
 
 <description>
@@ -30,7 +30,8 @@ and the reconstruction of a secret using user-provided shares.</p>
 <options>
 
       <option>
-<p><opt>-t <arg>threshold</arg></opt></p> <optdesc><p>The number of
+<p><opt>-t <arg>threshold</arg></opt></p> <optdesc>
+<p>Specify the number of
       shares necessary to reconstruct the secret.</p></optdesc>
     
 </option>
@@ -38,15 +39,7 @@ and the reconstruction of a secret using user-provided shares.</p>
       <option>
 <p><opt>-n <arg>shares</arg></opt></p>
 <optdesc>
-      <p>The number of shares to be generated.</p>
-</optdesc>
-</option>      
-      <option><p><opt>-s <arg>level</arg></opt></p>
-<optdesc>
-      <p>The scheme's security level in bits. It is an upper bound for
-      the length of the shared secret (shorter secrets are
-      padded). Allowed values are 80, 112, 128, 192, 256, 512 and
-      1024. The default is 128.</p>
+      <p>Specify the number of shares to be generated.</p>
 </optdesc>
 </option>      
       
@@ -58,6 +51,18 @@ and the reconstruction of a secret using user-provided shares.</p>
 </optdesc>
 </option>      
       
+      <option><p><opt>-s <arg>level</arg></opt></p>
+<optdesc>
+      <p>Enforce the scheme's security level (in bits). This option
+      implies an upper bound for the length of the shared secret
+      (shorter secrets are padded). Only multiples of 8 in the range
+      from 8 to 1024 are allowed. If this option is ommitted (or the
+      value given is 0) the security level is chosen automatically
+      depending on the secret's length.  The security level directly
+      determines the length of the shares.</p>
+</optdesc>
+</option>      
+
       <option><p><opt>-x</opt></p>
 <optdesc>
       <p>Hex mode: use hexadecimal digits in place of ASCII characters for
@@ -65,7 +70,7 @@ and the reconstruction of a secret using user-provided shares.</p>
       block cipher keys.</p>
 </optdesc>
 </option>      
-      
+
       <option><p><opt>-q</opt></p>
 <optdesc>
       <p>Quiet mode: disable all unnecessary output. Useful in scripts.
@@ -81,17 +86,24 @@ warnings.</p>
 
       <option><p><opt>-D</opt></p>
 <optdesc>
-      <p>Disable the diffusion layer added in version 0.2. This option is
-      needed when the shares were generated with ssss version 0.1.</p>
+      <p>Disable the diffusion layer added in version 0.2. This option
+      is needed when shares are combined that where generated with
+      ssss version 0.1.</p>
+</optdesc>
+</option>      
+
+      <option><p><opt>-v</opt></p>
+<optdesc>
+      <p>Print version information.</p>
 </optdesc>
 </option>      
 </options>
 
 <section name="Example">
 <p>
-        Suppose you want to protect your login password with a set of ten
-        shares, in such a way that any three of them can reconstruct the
-        password, simply run the command
+        In case you want to protect your login password with a set of ten
+        shares in such a way that any three of them can reconstruct the
+        password, you simply run the command
 </p>
 
 <p>
@@ -106,13 +118,29 @@ warnings.</p>
 <p>
           ssss-combine -t 3
 </p>
+
+</section>
+<section name="Notes">
+<p>
+To protect a secret larger than 1024 bits a hybrid technique has to be
+applied: encrypt the secret with a block cipher and apply secret
+sharing to just the key. Among others openssl and gpg can do the
+encryption part:
+</p>
+<p>
+openssl bf -e &lt; file.plain &gt; file.encrypted
+</p>
+<p>
+gpg -c &lt; file.plain &gt; file.encrypted
+</p>
+
 </section>
 
 <section name="Author">
-        This software (v0.3) was written in 2005 by B. Poettering (ssss AT
-        point-at-infinity.org). Find the newest version of ssss on the
-        project's homepage: <url
-        href="http://www.point-at-infinity.org/ssss/"/>. 
+        This software (v0.4) was written in 2005 by B. Poettering
+        (ssss AT point-at-infinity.org). Find the newest version of
+        ssss on the project's homepage: <url
+        href="http://point-at-infinity.org/ssss/"/>.
 </section>
 
 <section name="Further reading">

@@ -1,5 +1,5 @@
 /*
- *  ssss version 0.3  -  Copyright 2005 B. Poettering
+ *  ssss version 0.4  -  Copyright 2005 B. Poettering
  * 
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -18,9 +18,11 @@
  */
 
 /*
+ * http://point-at-infinity.org/ssss/
+ *
  * This is an implementation of Shamir's Secret Sharing Scheme. See 
- * http://en.wikipedia.org/wiki/Secret_sharing for more information 
- * on this topic.
+ * the project's homepage http://point-at-infinity.org/ssss/ for more 
+ * information on this topic.
  *
  * This code links against the GNU multiprecision library "libgmp".
  * I compiled the code successfully with gmp 4.1.4.
@@ -30,6 +32,7 @@
  * "gcc -O2 -lgmp -o ssss-split ssss.c && ln ssss-split ssss-combine"
  *
  * Report bugs to: ssss AT point-at-infinity.org
+ *  
  */
 
 #include <stdlib.h>
@@ -42,17 +45,34 @@
 
 #include <gmp.h>
 
+#define VERSION "0.4"
 #define RANDOM_SOURCE "/dev/random"
 #define MAXDEGREE 1024
 #define MAXTOKENLEN 128
 #define MAXLINELEN (MAXTOKENLEN + 1 + 10 + 1 + MAXDEGREE / 4 + 10)
 
+/* coefficients of some irreducible polynomials over GF(2) */
+static const unsigned char irred_coeff[] = {
+  4,3,1,5,3,1,4,3,1,7,3,2,5,4,3,5,3,2,7,4,2,4,3,1,10,9,3,9,4,2,7,6,2,10,9,
+  6,4,3,1,5,4,3,4,3,1,7,2,1,5,3,2,7,4,2,6,3,2,5,3,2,15,3,2,11,3,2,9,8,7,7,
+  2,1,5,3,2,9,3,1,7,3,1,9,8,3,9,4,2,8,5,3,15,14,10,10,5,2,9,6,2,9,3,2,9,5,
+  2,11,10,1,7,3,2,11,2,1,9,7,4,4,3,1,8,3,1,7,4,1,7,2,1,13,11,6,5,3,2,7,3,2,
+  8,7,5,12,3,2,13,10,6,5,3,2,5,3,2,9,5,2,9,7,2,13,4,3,4,3,1,11,6,4,18,9,6,
+  19,18,13,11,3,2,15,9,6,4,3,1,16,5,2,15,14,6,8,5,2,15,11,2,11,6,2,7,5,3,8,
+  3,1,19,16,9,11,9,6,15,7,6,13,4,3,14,13,3,13,6,3,9,5,2,19,13,6,19,10,3,11,
+  6,5,9,2,1,14,3,2,13,3,1,7,5,4,11,9,8,11,6,5,23,16,9,19,14,6,23,10,2,8,3,
+  2,5,4,3,9,6,4,4,3,2,13,8,6,13,11,1,13,10,3,11,6,5,19,17,4,15,14,7,13,9,6,
+  9,7,3,9,7,1,14,3,2,11,8,2,11,6,4,13,5,2,11,5,1,11,4,1,19,10,3,21,10,6,13,
+  3,1,15,7,5,19,18,10,7,5,3,12,7,2,7,5,1,14,9,6,10,3,2,15,13,12,12,11,9,16,
+  9,7,12,9,3,9,5,2,17,10,6,24,9,3,17,15,13,5,4,3,19,17,8,15,6,3,19,6,1 };
+
+int opt_showversion = 0;
 int opt_help = 0;
 int opt_quiet = 0;
 int opt_QUIET = 0;
 int opt_hex = 0;
 int opt_diffusion = 1;
-int opt_security = 128;
+int opt_security = 0;
 int opt_threshold = -1;
 int opt_number = -1;
 char *opt_token = NULL;
@@ -78,11 +98,11 @@ void warning(char *msg)
     fprintf(stderr, "%sWARNING: %s.\n", ttyoutput ? "\a" : "", msg);
 }
 
+/* field arithmetic routines */
+
 int field_size_valid(int deg)
 {
-  return (deg == 80) || (deg == 112) || (deg == 128) || (deg == 192) 
-    || (deg == 256) || (deg == 512) || (deg == 1024);
-  assert(deg <= MAXDEGREE);
+  return (deg >= 8) && (deg <= MAXDEGREE) && (deg % 8 == 0);
 }
 
 /* initialize 'poly' to a bitfield representing the coefficients of an
@@ -91,42 +111,10 @@ int field_size_valid(int deg)
 void field_init(int deg)
 {
   mpz_init_set_ui(poly, 0);
-  switch (deg) {
-  case 80: 
-    mpz_setbit(poly, 9);
-    mpz_setbit(poly, 4);
-    mpz_setbit(poly, 2);
-    break;
-  case 112:
-    mpz_setbit(poly, 5);
-    mpz_setbit(poly, 4);
-    mpz_setbit(poly, 3);
-    break;
-  case 128:
-  case 192:
-    mpz_setbit(poly, 7);
-    mpz_setbit(poly, 2);
-    mpz_setbit(poly, 1);
-    break;
-  case 256:
-    mpz_setbit(poly, 10);
-    mpz_setbit(poly, 5);
-    mpz_setbit(poly, 2);
-    break;
-  case 512:
-    mpz_setbit(poly, 8);
-    mpz_setbit(poly, 5);
-    mpz_setbit(poly, 2);
-    break;
-  case 1024:
-    mpz_setbit(poly, 19);
-    mpz_setbit(poly, 6);
-    mpz_setbit(poly, 1);
-    break;
-  default:
-    assert(0);
-  }
   mpz_setbit(poly, deg);
+  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 0]);
+  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 1]);
+  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 2]);
   mpz_setbit(poly, 0);
   degree = deg;
 }
@@ -154,7 +142,7 @@ void field_import(mpz_t x, const char *s, int hexmode)
     if (strlen(s) > degree / 8)
       fatal("input string too long");
     for(i = strlen(s) - 1; i >= 0; i--)
-      warn = warn || (s[i] <= 32) || (s[i] >= 127);
+      warn = warn || (s[i] < 32) || (s[i] >= 127);
     if (warn)
       warning("binary data detected, use -x mode instead");
     mpz_import(x, strlen(s), 1, 1, 0, 0, s);
@@ -178,7 +166,7 @@ void field_print(FILE* stream, const mpz_t x, int hexmode)
     memset(buf, degree / 8 + 1, 0);
     mpz_export(buf, &t, 1, 1, 0, 0, x);
     for(i = 0; i < t; i++) {
-      printable = (buf[i] > 32) && (buf[i] < 127);
+      printable = (buf[i] >= 32) && (buf[i] < 127);
       warn = warn || ! printable;
       fprintf(stream, "%c", printable ? buf[i] : '.');
     }
@@ -267,7 +255,7 @@ void cprng_read(mpz_t x)
   mpz_import(x, degree / 8, 1, 1, 0, 0, buf);
 }
 
-/* a pseudo random permutation (based on the XTEA cipher) */
+/* a 64 bit pseudo random permutation (based on the XTEA cipher) */
 
 void encipher_block(uint32_t *v) 
 {
@@ -279,7 +267,7 @@ void encipher_block(uint32_t *v)
     v[1] += (((v[0] << 4) ^ (v[0] >> 5)) + v[0]) ^ sum;
   }
 }
- 
+
 void decipher_block(uint32_t *v)
 {
   uint32_t sum = 0xC6EF3720, delta = 0x9E3779B9;
@@ -291,58 +279,47 @@ void decipher_block(uint32_t *v)
   }
 }
 
-void encipher_array(uint16_t *data, int len)
+void encode_slice(uint8_t *data, int idx, int len, 
+		  void (*process_block)(uint32_t*))
 {
-  int i;
   uint32_t v[2];
-  for(i = 0; i < 40 * len; i++) { /* 40 seems more than enough! */
-    v[0] = data[(i + 0) % len] << 16 | data[(i + 1) % len];
-    v[1] = data[(i + 2) % len] << 16 | data[(i + 3) % len];
-    encipher_block(v);
-    data[(i + 0) % len] = v[0] >> 16;
-    data[(i + 1) % len] = v[0] & 0xffff;
-    data[(i + 2) % len] = v[1] >> 16;
-    data[(i + 3) % len] = v[1] & 0xffff;
+  int i;
+  for(i = 0; i < 2; i++)
+    v[i] = data[(idx + 4 * i) % len] << 24 | 
+      data[(idx + 4 * i + 1) % len] << 16 | 
+      data[(idx + 4 * i + 2) % len] << 8 | data[(idx + 4 * i + 3) % len];
+  process_block(v);
+  for(i = 0; i < 2; i++) {
+    data[(idx + 4 * i + 0) % len] = v[i] >> 24;
+    data[(idx + 4 * i + 1) % len] = (v[i] >> 16) & 0xff;
+    data[(idx + 4 * i + 2) % len] = (v[i] >> 8) & 0xff;
+    data[(idx + 4 * i + 3) % len] = v[i] & 0xff;
   }
 }
 
-void decipher_array(uint16_t *data, int len)
+enum encdec {ENCODE, DECODE};
+
+void encode_mpz(mpz_t x, enum encdec encdecmode)
 {
+  uint8_t v[(MAXDEGREE + 8) / 16 * 2];
+  size_t t;
   int i;
-  uint32_t v[2];
-  for(i = 40 * len - 1; i >= 0; i--) {
-    v[0] = data[(i + 0) % len] << 16 | data[(i + 1) % len];
-    v[1] = data[(i + 2) % len] << 16 | data[(i + 3) % len];
-    decipher_block(v);
-    data[(i + 0) % len] = v[0] >> 16;
-    data[(i + 1) % len] = v[0] & 0xffff;
-    data[(i + 2) % len] = v[1] >> 16;
-    data[(i + 3) % len] = v[1] & 0xffff;
+  memset(v, 0, (degree + 8) / 16 * 2);
+  mpz_export(v, &t, -1, 2, 1, 0, x);
+  if (degree % 16 == 8)
+    v[degree / 8 - 1] = v[degree / 8];
+  if (encdecmode == ENCODE)             /* 40 rounds are more than enough!*/
+    for(i = 0; i < 40 * ((int)degree / 8); i += 2)
+      encode_slice(v, i, degree / 8, encipher_block);
+  else
+    for(i = 40 * (degree / 8) - 2; i >= 0; i -= 2)
+      encode_slice(v, i, degree / 8, decipher_block);
+  if (degree % 16 == 8) {
+    v[degree / 8] = v[degree / 8 - 1];
+    v[degree / 8 - 1] = 0;
   }
-}
-
-void encipher_mpz(mpz_t x)
-{
-  uint16_t v[MAXDEGREE / 16 + 1];
-  size_t t;
-  mpz_setbit(x, degree);
-  mpz_export(v, &t, -1, 2, 0, 0, x);
-  assert(t == degree / 16 + 1);
-  encipher_array(v, degree / 16);
-  mpz_import(x, degree / 16, -1, 2, 0, 0, v);
-  mpz_clrbit(x, degree);
-}
-
-void decipher_mpz(mpz_t x)
-{
-  uint16_t v[MAXDEGREE / 16 + 1];
-  size_t t;
-  mpz_setbit(x, degree);
-  mpz_export(v, &t, -1, 2, 0, 0, x);
-  assert(t == degree / 16 + 1);
-  decipher_array(v, degree / 16);
-  mpz_import(x, degree / 16, -1, 2, 0, 0, v);
-  mpz_clrbit(x, degree);
+  mpz_import(x, (degree + 8) / 16, -1, 2, 1, 0, v);
+  assert(mpz_sizeinbits(x) <= degree);
 }
 
 /* evaluate polynomials efficiently */
@@ -363,7 +340,7 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 #define MPZ_SWAP(A, B) \
   do { mpz_set(h, A); mpz_set(A, B); mpz_set(B, h); } while(0)
 
-int restore_secret(int n, mpz_t A[][], mpz_t b[]) 
+int restore_secret(int n, mpz_t (*A)[n], mpz_t b[]) 
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k, found;
@@ -410,26 +387,43 @@ void split(void)
   char buf[MAXLINELEN];
   int i;
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
-  field_init(opt_security);
-
-  if (! opt_quiet)
-    printf("Generating shares using a (%d,%d) scheme with a %d bit "
-	   "security level.\n", opt_threshold, opt_number, opt_security);
-
   if (! opt_quiet) {
+    printf("Generating shares using a (%d,%d) scheme with ", 
+	   opt_threshold, opt_number);
+    if (opt_security)
+      printf("a %d bit", opt_security);
+    else
+      printf("dynamic");
+    printf(" security level.\n");
+    
+    int deg = opt_security ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
-      fprintf(stderr, "%d hex digits: ", degree / 4);
+      fprintf(stderr, "as most %d hex digits: ", deg / 4);
     else 
-      fprintf(stderr, "at most %d ASCII characters: ", degree / 8);
+      fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
   }
   if (! fgets(buf, sizeof(buf), stdin))
     fatal("I/O error while reading secret");
   buf[strcspn(buf, "\r\n")] = '\0';
+
+  if (! opt_security) {
+    opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
+
+    if (! opt_quiet)
+      fprintf(stderr, "Using a %d bit security level.\n", opt_security);
+  }
+  field_init(opt_security);
+
   mpz_init(coeff[0]);
   field_import(coeff[0], buf, opt_hex);
-  if (opt_diffusion)
-    encipher_mpz(coeff[0]);
+
+  if (opt_diffusion) {
+    if (degree >= 64)
+      encode_mpz(coeff[0], ENCODE);
+    else 
+      warning("security level too small for the diffusion layer");
+  }
   
   cprng_init();
   for(i = 1; i < opt_threshold; i++) {
@@ -510,8 +504,13 @@ void combine(void)
   mpz_clear(x);
   if (restore_secret(opt_threshold, A, y))
     fatal("shares inconsistent. Perhaps a single share was used twice");
-  if (opt_diffusion)
-    decipher_mpz(y[opt_threshold - 1]);
+
+  if (opt_diffusion) {
+    if (degree >= 64)
+      encode_mpz(y[opt_threshold - 1], DECODE);
+    else 
+      warning("security level too small for the diffusion layer");
+  }
 
   if (! opt_quiet)
     fprintf(stderr, "Resulting secret: "); 
@@ -534,8 +533,9 @@ int main(int argc, char *argv[])
   ttyoutput = isatty(i);
 
   opt_help = argc == 1;
-  while((i = getopt(argc, argv, "DhqQxs:t:n:w:")) != -1)
+  while((i = getopt(argc, argv, "vDhqQxs:t:n:w:")) != -1)
     switch(i) {
+    case 'v': opt_showversion = 1; break;
     case 'h': opt_help = 1; break;
     case 'q': opt_quiet = 1; break;
     case 'Q': opt_QUIET = opt_quiet = 1; break;
@@ -555,10 +555,14 @@ int main(int argc, char *argv[])
     name = argv[0];
 
   if (strstr(name, "split")) {
-    if (opt_help) {
+    if (opt_help || opt_showversion) {
       puts("Split secrets using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
-	   "ssss-split -t threshold -n shares [-s level] [-w token] [-x] [-q] [-Q]");
+	   "ssss-split -t threshold -n shares [-w token] [-s level]"
+	   " [-x] [-q] [-Q] [-D] [-v]"
+	   );
+      if (opt_showversion)
+	puts("\nVersion: " VERSION);
       exit(0);
     }
     
@@ -568,7 +572,7 @@ int main(int argc, char *argv[])
     if (opt_number < opt_threshold)
       fatal("invalid parameters: number of shares smaller than threshold");
 
-    if (! field_size_valid(opt_security))
+    if (opt_security && ! field_size_valid(opt_security))
       fatal("invalid parameters: invalid security level");
 
     if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
@@ -577,10 +581,12 @@ int main(int argc, char *argv[])
     split();
   }
   else {
-    if (opt_help) {
+    if (opt_help || opt_showversion) {
       puts("Combine shares using Shamir's Secret Sharing Scheme.\n"
 	   "\n"
-	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D]");
+	   "ssss-combine -t threshold [-x] [-q] [-Q] [-D] [-v]");
+      if (opt_showversion)
+	puts("\nVersion: " VERSION);
       exit(0);
     }
 
@@ -589,6 +595,5 @@ int main(int argc, char *argv[])
 
     combine();
   }
-
   return 0;
 }
