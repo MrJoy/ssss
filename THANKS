@@ -1,0 +1,6 @@
+I would like to thank the following people for comments and code:
+
+  Tamás Tevesz (documentation)
+  Stefan Schlesinger, Daniel Bielefeldt (error reporting)
+  Olaf Mersmann (memory locking, echo suppression)
+  Alex Popov (windows port)

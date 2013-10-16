@@ -1,5 +1,5 @@
 /*
- *  ssss version 0.4  -  Copyright 2005 B. Poettering
+ *  ssss version 0.5  -  Copyright 2005,2006 B. Poettering
  * 
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License as
@@ -31,21 +31,26 @@
  * Compile with 
  * "gcc -O2 -lgmp -o ssss-split ssss.c && ln ssss-split ssss-combine"
  *
+ * Compile with -DNOMLOCK to obtain a version without memory locking.
+ *
  * Report bugs to: ssss AT point-at-infinity.org
  *  
  */
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <termios.h>
+#include <sys/mman.h>
 
 #include <gmp.h>
 
-#define VERSION "0.4"
+#define VERSION "0.5"
 #define RANDOM_SOURCE "/dev/random"
 #define MAXDEGREE 1024
 #define MAXTOKENLEN 128
@@ -77,25 +82,27 @@ int opt_threshold = -1;
 int opt_number = -1;
 char *opt_token = NULL;
 
-int ttyoutput;
-
 unsigned int degree;
 mpz_t poly;
 int cprng;
+struct termios echo_orig, echo_off;
 
 #define mpz_lshift(A, B, l) mpz_mul_2exp(A, B, l)
 #define mpz_sizeinbits(A) (mpz_cmp_ui(A, 0) ? mpz_sizeinbase(A, 2) : 0)
 
+/* emergency abort and warning functions */
+
 void fatal(char *msg)
 {
-  fprintf(stderr, "%sFATAL: %s.\n", ttyoutput ? "\a" : "", msg);
+  tcsetattr(0, TCSANOW, &echo_orig);
+  fprintf(stderr, "%sFATAL: %s.\n", isatty(2) ? "\a" : "", msg);
   exit(1);
 }
 
 void warning(char *msg)
 {
   if (! opt_QUIET)
-    fprintf(stderr, "%sWARNING: %s.\n", ttyoutput ? "\a" : "", msg);
+    fprintf(stderr, "%sWARNING: %s.\n", isatty(2) ? "\a" : "", msg);
 }
 
 /* field arithmetic routines */
@@ -110,6 +117,7 @@ int field_size_valid(int deg)
 
 void field_init(int deg)
 {
+  assert(field_size_valid(deg));
   mpz_init_set_ui(poly, 0);
   mpz_setbit(poly, deg);
   mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 0]);
@@ -385,7 +393,7 @@ void split(void)
   unsigned int fmt_len;
   mpz_t x, y, coeff[opt_threshold];
   char buf[MAXLINELEN];
-  int i;
+  int deg, i;
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   if (! opt_quiet) {
     printf("Generating shares using a (%d,%d) scheme with ", 
@@ -396,23 +404,27 @@ void split(void)
       printf("dynamic");
     printf(" security level.\n");
     
-    int deg = opt_security ? opt_security : MAXDEGREE;
+    deg = opt_security ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
       fprintf(stderr, "as most %d hex digits: ", deg / 4);
     else 
       fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
   }
+  tcsetattr(0, TCSANOW, &echo_off);
   if (! fgets(buf, sizeof(buf), stdin))
     fatal("I/O error while reading secret");
+  tcsetattr(0, TCSANOW, &echo_orig);
   buf[strcspn(buf, "\r\n")] = '\0';
 
   if (! opt_security) {
     opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
-
+    if (! field_size_valid(opt_security))
+      fatal("security level invalid (secret too long?)");
     if (! opt_quiet)
       fprintf(stderr, "Using a %d bit security level.\n", opt_security);
   }
+
   field_init(opt_security);
 
   mpz_init(coeff[0]);
@@ -528,9 +540,31 @@ int main(int argc, char *argv[])
 {
   char *name;
   int i;
-  if ((i = fileno(stderr)) < 0)
-    fatal("couldn't determine fileno of stderr");
-  ttyoutput = isatty(i);
+
+#if ! NOMLOCK
+  if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+    switch(errno) {
+    case ENOMEM:
+      warning("couldn't get memory lock (ENOMEM, try to adjust RLIMIT_MEMLOCK!)");
+      break;
+    case EPERM:
+      warning("couldn't get memory lock (EPERM, try UID 0!)");
+      break;
+    case ENOSYS:
+      warning("couldn't get memory lock (ENOSYS, kernel doesn't allow page locking)");
+      break;
+    default:
+      warning("couldn't get memory lock");
+      break;
+    }
+#endif
+
+  if (getuid() != geteuid())
+    seteuid(getuid());
+
+  tcgetattr(0, &echo_orig);
+  echo_off = echo_orig;
+  echo_off.c_lflag &= ~ECHO;
 
   opt_help = argc == 1;
   while((i = getopt(argc, argv, "vDhqQxs:t:n:w:")) != -1)

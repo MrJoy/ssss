@@ -1,0 +1,176 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+  <head>
+    <title>ssss: Shamir's Secret Sharing Scheme</title>
+  </head>
+  
+  <body>
+    <small>The following text is licensed under the 
+      <a href="http://www.gnu.org/licenses/gpl.html">
+	GNU General Public License</a>. Copyright 2005, 2006 by
+      B. Poettering.</small> 
+    <hr noshade="noshade"/>
+    
+    <h4>What is "Secret Sharing"?</h4>
+    
+    Citing from the <a href="http://en.wikipedia.org/">Wikipedia</a>
+    article about <a
+      href="http://en.wikipedia.org/wiki/Secret_sharing">Secret
+      Sharing</a>:
+    <blockquote>
+      <p>
+	In <a
+	  href="http://en.wikipedia.org/wiki/Cryptography">cryptography</a>, a
+	<b>secret sharing scheme</b> is a method for distributing a <a
+	  href="http://en.wikipedia.org/wiki/Secrecy"><i>secret</i></a> amongst
+	a group of participants, each of which is allocated a <i>share</i> of
+	the secret. The secret can only be reconstructed when the shares are
+	combined together; individual shares are of no use on their own.
+      </p>
+      <p>
+	More formally, in a secret sharing scheme there is one <i>dealer</i>
+	and <i>n</i> <i>players</i>. The dealer gives a secret to the players,
+	but only when specific conditions are fulfilled. The dealer
+	accomplishes this by giving each player a share in such a way that any
+	group of <i>t</i> (for <i>threshold</i>) or more players can together
+	reconstruct the secret but no group of less than <i>t</i> players
+	can. Such a system is called a <i>(t,n)</i>-threshold scheme.
+      </p>
+    </blockquote>
+    <p>
+        A popular technique to implement threshold schemes uses <a
+	href="http://en.wikipedia.org/wiki/Polynomial_interpolation">
+	polynomial interpolation</a> ("Lagrange interpolation"). This
+        method was invented by <a
+   	href="http://en.wikipedia.org/wiki/Adi_Shamir"> Adi Shamir</a> in
+        1979. You can play around with a threshold scheme on the <a
+        href="http://point-at-infinity.org/ssss/demo.html">demo page</a>.
+	</p>
+    <p>
+    Note that Shamir's scheme is provable secure, that means: in a
+    <i>(t,n)</i> scheme one can prove that it makes no difference
+    whether an attacker has <i>t-1</i> valid shares at his disposal or
+    none at all; as long as he has less than
+    <i>t</i> shares, there is no better option than guessing to find
+    out the secret.
+    </p>
+      <h4>Where is "Secret Sharing" used?</h4> Some popular examples are:
+      <ul>
+      <li>
+	Good passwords are hard to memorize. A clever user could use a
+	secret sharing scheme to generate a set of shares for a given
+	password and store one share in his address book, one in his
+	bank deposit safe, leave one share with a friend, etc. If one day he
+	forgets his password, he can reconstruct it easily. Of
+	course, writing passwords directly into the address book would
+	pose a security risk, as it could be stolen by an "enemy". If
+	a secret sharing scheme is used, the attacker has to steal
+	many shares from different places.
+      </li>
+      <li>
+	"A dealer could send <i>t</i> shares, all of which are
+	necessary to recover the original secret, to a single
+	recipient, using <i>t</i> different channels. An attacker
+	would have to intercept all <i>t</i> shares to recover the
+	secret, a task which may be more difficult than intercepting a
+	single message" (<a
+	  href="http://en.wikipedia.org/wiki/Secret_sharing">Wikipedia</a>).
+      </li>
+      <li>
+	The director of a bank could generate shares for the bank's
+	vault unlocking code and hand them out to his employees. Even
+	if the director is not available, the vault can be opened, but only,
+	when a certain number of employees do it together. Here secret
+	sharing schemes allow the employment of not fully trusted
+	people.
+      </li>
+    </ul>
+    
+    <h4>What is "ssss"? Where can I download "ssss"?</h4>
+    <p>
+      <b>ssss</b> is an implementation of Shamir's secret sharing
+      scheme for UNIX systems, especially developed for linux
+      machines. The code is licensed under the <a
+      href="http://www.gnu.org/licenses/gpl.html">GNU GPL</a>.
+      <b>ssss</b> does both: the generation of shares for a known
+      secret and the reconstruction of a secret using user provided
+      shares.  The software was written in 2006 by B. Poettering, it
+      links against the <a href="http://swox.com/gmp/">GNU libgmp</a>
+      multiprecision library (version 4.1.4 works well) and requires
+      the <tt>/dev/random</tt> entropy source. Please send bug reports
+      to <b><tt>ssss AT point-at-infinity.org</tt></b>.
+    </p>
+    <p>There is a <a
+    href="http://freshmeat.net/projects/ssss/">freshmeat page</a> for
+    <b>ssss</b>. A <a
+    href="http://packages.debian.org/unstable/utils/ssss">debian
+    package</a> is also available. If you are the lucky owner of a
+    debian system just run <tt>apt-get update &amp;&amp; apt-get
+    install ssss</tt> to install <b>ssss</b>. Someone even ported (an
+    outdated version of) <b>ssss</b> to <a
+    href="http://www.seidlitz.ca/ssss/">Windows</a> (but with a
+    lightly too sloppy random number generation, in my opinion).
+    </p>
+    <p>
+      Download on the <a href="http://point-at-infinity.org/ssss">ssss homepage</a>.
+    </p>
+
+    <h4>How is "ssss" used? Is there an online demonstration?</h4> 
+    <p>The generation of shares given a
+      known secret is shown first.  A (3,5)-threshold scheme is used, that is:
+      5 shares are generated, the secret can be reconstructed by any
+      subset of size 3.
+    </p>
+    <pre>
+      % ssss-split -t 3 -n 5
+      Generating shares using a (3,5) scheme with dynamic security level.
+      Enter the secret, at most 128 ASCII characters: my secret root password
+      Using a 184 bit security level.
+      1-1c41ef496eccfbeba439714085df8437236298da8dd824
+      2-fbc74a03a50e14ab406c225afb5f45c40ae11976d2b665
+      3-fa1c3a9c6df8af0779c36de6c33f6e36e989d0e0b91309
+      4-468de7d6eb36674c9cf008c8e8fc8c566537ad6301eb9e
+      5-4756974923c0dce0a55f4774d09ca7a4865f64f56a4ee0
+    </pre>
+    These shares can be combined to recreate the secret:
+    <pre>
+      % ssss-combine -t 3
+      Enter 3 shares separated by newlines:
+      Share [1/3]: 3-fa1c3a9c6df8af0779c36de6c33f6e36e989d0e0b91309
+      Share [2/3]: 5-4756974923c0dce0a55f4774d09ca7a4865f64f56a4ee0
+      Share [3/3]: 2-fbc74a03a50e14ab406c225afb5f45c40ae11976d2b665
+      Resulting secret: my secret root password
+    </pre>
+    You can try it out on the
+    <a href="http://point-at-infinity.org/ssss/demo.html">demo page</a>.
+
+    <p>
+    If larger secrets are to be shared a hybrid technique has to be
+    applied: encrypt the secret with a block cipher (using openssl,
+    gpg, etc) and apply secret sharing to just the key. See the man
+    page for more information about this topic.
+    </p>
+
+
+    <h4>Where is the manpage?</h4>
+   Read it as <a href="http://point-at-infinity.org/ssss/ssss.1.html">html</a> or 
+    <a href="http://point-at-infinity.org/ssss/ssss.1">*roff</a>! 
+
+<form action="https://www.paypal.com/cgi-bin/webscr" method="post">
+<input name="cmd" value="_xclick" type="hidden">
+<input name="business" value="mzcnlcny@0pointer.de" type="hidden">
+<input name="no_note" value="1" type="hidden">
+<input name="currency_code" value="EUR" type="hidden">
+   <p>
+If you like this software, think about donating some money via
+   <input src="https://www.paypal.com/en_US/i/btn/x-click-but7.gif" name="submit" alt="PayPal" type="image">.
+</p>
+</form>
+    <hr>
+    <small>
+      <!-- hhmts start -->
+Last modified: Sun Jan 15 12:08:48 CET 2006
+<!-- hhmts end -->
+    </small>
+  </body>
+</html>

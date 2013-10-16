@@ -136,8 +136,19 @@ gpg -c &lt; file.plain &gt; file.encrypted
 
 </section>
 
+<section name="Security">
+<p>
+<opt>ssss</opt> tries to lock its virtual address space into RAM for
+privacy reasons. But this may fail for two reasons: either the current uid
+doesn't permit page locking, or the RLIMIT_MEMLOCK is set too
+low. After printing a warning message <opt>ssss</opt> will run even without
+obtaining the desired mlock.
+</p>
+
+</section>
+
 <section name="Author">
-        This software (v0.4) was written in 2005 by B. Poettering
+        This software (v0.5) was written in 2006 by B. Poettering
         (ssss AT point-at-infinity.org). Find the newest version of
         ssss on the project's homepage: <url
         href="http://point-at-infinity.org/ssss/"/>.
