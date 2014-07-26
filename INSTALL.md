@@ -22,11 +22,11 @@
 
 ## MacOS X
 
-These instructions are appropriate to OS X 10.7 (Lion), and 10.8 (Mountain Lion).
+These instructions have been tested on OS X from 10.7 (Lion), through 10.10 (Yosemite).
 
 ### Basics:
 
-1. Ensure you have installed XCode 4.x, including the Command Line Tools.
+1. Ensure you have installed the latest XCode, including the Command Line Tools.
 2. Install [MacPorts](http://www.macports.org/), or [HomeBrew](http://mxcl.github.io/homebrew/).
 
 ### MacPorts:
