@@ -338,8 +338,12 @@ void encode_mpz(mpz_t x, enum encdec encdecmode)
   assert(mpz_sizeinbits(x) <= degree);
 }
 
-/* evaluate polynomials efficiently */
-
+/* evaluate polynomials efficiently
+ * Note that this implementation adds an additional x^k term. This term is 
+ * subtracted off on recombining. This additional term neither adds nor removes 
+ * security but is left solely for legacy reasons.
+ */
+ 
 void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 {
   int i;
@@ -522,6 +526,7 @@ void combine(void)
     }
     mpz_init(y[i]);
     field_import(y[i], b, 1);
+    /* Remove x^k term. See comment at top of horner() */
     field_mult(x, x, A[0][i]);
     field_add(y[i], y[i], x);
   }
