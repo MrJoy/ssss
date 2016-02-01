@@ -67,7 +67,7 @@ signature first!
 
 ```bash
 # First, you need to make sure you have the signing key in your GPG keychain:
-gpg --keyserver sks.keyservers.net --recv-key 7DCB12A7
+gpg --keyserver sks-keyservers.net --recv-key 7DCB12A7
 
 # Now, clone the repo, and verify it:
 git clone http://github.com/MrJoy/ssss.git
