@@ -1,5 +1,11 @@
 # History
 
+## v0.5.5: (February 2016)
+
+* Fix build for picky compilers.  (Not relevant to clang, maybe relevant to gcc?)
+* Documentation / source comment improvements.
+* Fix domain name for keyserver in readme.
+
 ## v0.5.4: (October 2013)
 
 * Minor Makefile fix.
