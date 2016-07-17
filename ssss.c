@@ -561,6 +561,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
   int failedMemoryLock = 0;
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+  {
     failedMemoryLock = 1;
     switch(errno) {
     case ENOMEM:
@@ -576,6 +577,7 @@ int main(int argc, char *argv[])
       warning("couldn't get memory lock");
       break;
     }
+  }
 #endif
 
   if (getuid() != geteuid())
