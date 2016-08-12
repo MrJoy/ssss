@@ -178,7 +178,7 @@ void field_print(FILE* stream, const mpz_t x, int hexmode)
     size_t t;
     unsigned int i;
     int printable, warn = 0;
-    memset(buf, degree / 8 + 1, 0);
+    memset(buf, 0, degree / 8 + 1);
     mpz_export(buf, &t, 1, 1, 0, 0, x);
     for(i = 0; i < t; i++) {
       printable = (buf[i] >= 32) && (buf[i] < 127);
@@ -561,6 +561,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
   int failedMemoryLock = 0;
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
+  {
     failedMemoryLock = 1;
     switch(errno) {
     case ENOMEM:
@@ -576,6 +577,7 @@ int main(int argc, char *argv[])
       warning("couldn't get memory lock");
       break;
     }
+  }
 #endif
 
   if (getuid() != geteuid())
