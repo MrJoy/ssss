@@ -95,7 +95,7 @@ warnings.</p>
       <option><p><opt>-D</opt></p>
 <optdesc>
       <p>Disable the diffusion layer added in version 0.2. This option
-      is needed when shares are combined that where generated with
+      is needed when shares are combined that were generated with
       ssss version 0.1.</p>
 </optdesc>
 </option>
