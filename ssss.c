@@ -79,12 +79,12 @@ static const uint8_t irred_coeff[] = {
   3,1,15,7,5,19,18,10,7,5,3,12,7,2,7,5,1,14,9,6,10,3,2,15,13,12,12,11,9,16,
   9,7,12,9,3,9,5,2,17,10,6,24,9,3,17,15,13,5,4,3,19,17,8,15,6,3,19,6,1 };
 
-int opt_showversion = 0;
-int opt_help = 0;
-int opt_quiet = 0;
-int opt_QUIET = 0;
-int opt_hex = 0;
-int opt_diffusion = 1;
+bool opt_showversion = false;
+bool opt_help = false;
+bool opt_quiet = false;
+bool opt_QUIET = false;
+bool opt_hex = false;
+bool opt_diffusion = true;
 int opt_security = 0;
 int opt_threshold = -1;
 int opt_number = -1;
@@ -142,7 +142,7 @@ void field_deinit(void)
 
 /* I/O routines for GF(2^deg) field elements */
 
-void field_import(mpz_t x, const char *s, int hexmode)
+void field_import(mpz_t x, const char *s, bool hexmode)
 {
   if (hexmode) {
     if (strlen(s) > degree / 4)
@@ -165,7 +165,7 @@ void field_import(mpz_t x, const char *s, int hexmode)
   }
 }
 
-void field_print(FILE* stream, const mpz_t x, int hexmode)
+void field_print(FILE* stream, const mpz_t x, bool hexmode)
 {
   int i;
   if (hexmode) {
@@ -561,10 +561,10 @@ int main(int argc, char *argv[])
   int i;
 
 #if ! NOMLOCK
-  int failedMemoryLock = 0;
+  bool failedMemoryLock = false;
   if (mlockall(MCL_CURRENT | MCL_FUTURE) < 0)
   {
-    failedMemoryLock = 1;
+    failedMemoryLock = true;
     switch(errno) {
     case ENOMEM:
       warning("couldn't get memory lock (ENOMEM, try to adjust RLIMIT_MEMLOCK!)");
@@ -599,19 +599,19 @@ int main(int argc, char *argv[])
 
   while((i = getopt(argc, argv, flags)) != -1)
     switch(i) {
-    case 'v': opt_showversion = 1; break;
-    case 'h': opt_help = 1; break;
-    case 'q': opt_quiet = 1; break;
-    case 'Q': opt_QUIET = opt_quiet = 1; break;
-    case 'x': opt_hex = 1; break;
+    case 'v': opt_showversion = true; break;
+    case 'h': opt_help = true; break;
+    case 'q': opt_quiet = true; break;
+    case 'Q': opt_QUIET = opt_quiet = true; break;
+    case 'x': opt_hex = true; break;
     case 's': opt_security = atoi(optarg); break;
     case 't': opt_threshold = atoi(optarg); break;
     case 'n': opt_number = atoi(optarg); break;
     case 'w': opt_token = optarg; break;
-    case 'D': opt_diffusion = 0; break;
+    case 'D': opt_diffusion = false; break;
 #if ! NOMLOCK
     case 'M':
-      if(failedMemoryLock != 0)
+      if(failedMemoryLock)
         fatal("memory lock is required to proceed");
       break;
 #endif
