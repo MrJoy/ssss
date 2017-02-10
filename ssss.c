@@ -177,14 +177,14 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
   else {
     char buf[MAXDEGREE / 8 + 1];
     size_t t;
-    size_t i;
+    size_t ii;
     bool printable, warn = false;
     memset(buf, 0, degree / 8 + 1);
     mpz_export(buf, &t, 1, 1, 0, 0, x);
-    for(i = 0; i < t; i++) {
-      printable = (buf[i] >= 32) && (buf[i] < 127);
+    for(ii = 0; ii < t; ii++) {
+      printable = (buf[ii] >= 32) && (buf[ii] < 127);
       warn = warn || ! printable;
-      fprintf(stream, "%c", printable ? buf[i] : '.');
+      fprintf(stream, "%c", printable ? buf[ii] : '.');
     }
     fprintf(stream, "\n");
     if (warn)
