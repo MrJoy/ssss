@@ -79,8 +79,6 @@ static const uint8_t irred_coeff[] = {
   3,1,15,7,5,19,18,10,7,5,3,12,7,2,7,5,1,14,9,6,10,3,2,15,13,12,12,11,9,16,
   9,7,12,9,3,9,5,2,17,10,6,24,9,3,17,15,13,5,4,3,19,17,8,15,6,3,19,6,1 };
 
-bool opt_showversion = false;
-bool opt_help = false;
 bool opt_quiet = false;
 bool opt_QUIET = false;
 bool opt_hex = false;
@@ -559,6 +557,7 @@ void combine(void)
 
 int main(int argc, char *argv[])
 {
+  bool opt_showversion = false, opt_help = argc == 1;
   char *name;
   int i;
   const char* flags =
@@ -596,8 +595,6 @@ int main(int argc, char *argv[])
   tcgetattr(0, &echo_orig);
   echo_off = echo_orig;
   echo_off.c_lflag &= ~ECHO;
-
-  opt_help = argc == 1;
 
   while((i = getopt(argc, argv, flags)) != -1)
     switch(i) {
