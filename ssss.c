@@ -107,7 +107,7 @@ static void fatal(char *msg)
 
 static void warning(char *msg)
 {
-  if (opt_QUIET == 0)
+  if (!opt_QUIET)
     fprintf(stderr, "%sWARNING: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
 }
 
