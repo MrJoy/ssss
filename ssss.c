@@ -55,6 +55,8 @@
 
 #include <gmp.h>
 
+extern int /*@alt void@*/ fprintf(FILE * restrict stream, const char * restrict format, ...);
+
 #define VERSION "0.5.6"
 #define RANDOM_SOURCE "/dev/urandom"
 #define MAXDEGREE 1024
@@ -413,7 +415,7 @@ void split(void)
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   if (! opt_quiet) {
     fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
-            opt_threshold, opt_number);
+                  opt_threshold, opt_number);
     if (opt_security)
       fprintf(stderr, "a %d bit", opt_security);
     else
