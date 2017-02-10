@@ -48,6 +48,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <assert.h>
 #include <termios.h>
 #include <sys/mman.h>
@@ -61,7 +62,7 @@
 #define MAXLINELEN (MAXTOKENLEN + 1 + 10 + 1 + MAXDEGREE / 4 + 10)
 
 /* coefficients of some irreducible polynomials over GF(2) */
-static const unsigned char irred_coeff[] = {
+static const uint8_t irred_coeff[] = {
   4,3,1,5,3,1,4,3,1,7,3,2,5,4,3,5,3,2,7,4,2,4,3,1,10,9,3,9,4,2,7,6,2,10,9,
   6,4,3,1,5,4,3,4,3,1,7,2,1,5,3,2,7,4,2,6,3,2,5,3,2,15,3,2,11,3,2,9,8,7,7,
   2,1,5,3,2,9,3,1,7,3,1,9,8,3,9,4,2,8,5,3,15,14,10,10,5,2,9,6,2,9,3,2,9,5,
