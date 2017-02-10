@@ -28,12 +28,9 @@
  *
  * This code links against the GNU multiprecision library "libgmp".
  * Original author compiled the code successfully with gmp 4.1.4.
- * Jon Frisby compiled the code successfully with gmp 5.0.2.
+ * Jon Frisby compiled the code successfully with gmp 5.0.2, and 6.1.2.
  *
- * You will need a system that has a /dev/random entropy source.
- *
- * Compile with
- * "gcc -O2 -lgmp -o ssss-split ssss.c && ln ssss-split ssss-combine"
+ * You will need a system that has a /dev/urandom entropy source.
  *
  * Compile with -DNOMLOCK to obtain a version without memory locking.
  *
