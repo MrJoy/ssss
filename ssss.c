@@ -182,7 +182,7 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
     memset(buf, 0, degree / 8 + 1);
     mpz_export(buf, &t, 1, 1, 0, 0, x);
     for(ii = 0; ii < t; ii++) {
-      printable = (buf[ii] >= 32) && (buf[ii] < 127);
+      printable = (buf[ii] >= (char)32) && (buf[ii] < (char)127);
       warn = warn || ! printable;
       fprintf(stream, "%c", printable ? buf[ii] : '.');
     }
@@ -504,9 +504,9 @@ void combine(void)
     buf[strcspn(buf, "\r\n")] = '\0';
     if (! (a = strchr(buf, '-')))
       fatal("invalid syntax");
-    *a++ = 0;
+    *a++ = (char)0;
     if ((b = strchr(a, '-')) != 0)
-      *b++ = 0;
+      *b++ = (char)0;
     else
       b = a, a = buf;
 
