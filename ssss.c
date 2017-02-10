@@ -561,6 +561,12 @@ int main(int argc, char *argv[])
 {
   char *name;
   int i;
+  const char* flags =
+#if ! NOMLOCK
+    "MvDhqQxs:t:n:w:";
+#else
+    "vDhqQxs:t:n:w:";
+#endif
 
 #if ! NOMLOCK
   bool failedMemoryLock = false;
@@ -592,12 +598,6 @@ int main(int argc, char *argv[])
   echo_off.c_lflag &= ~ECHO;
 
   opt_help = argc == 1;
-  const char* flags =
-#if ! NOMLOCK
-    "MvDhqQxs:t:n:w:";
-#else
-    "vDhqQxs:t:n:w:";
-#endif
 
   while((i = getopt(argc, argv, flags)) != -1)
     switch(i) {
