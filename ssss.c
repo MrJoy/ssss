@@ -101,7 +101,7 @@ void fatal(char *msg)
 {
   (void)tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "%sFATAL: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
 void warning(char *msg)
@@ -613,7 +613,7 @@ int main(int argc, char *argv[])
       break;
 #endif
     default:
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   if (! opt_help && (argc != optind))
     fatal("invalid argument");
@@ -633,7 +633,7 @@ int main(int argc, char *argv[])
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
-      exit(0);
+      exit(EXIT_SUCCESS);
     }
 
     if (opt_threshold < 2)
@@ -662,7 +662,7 @@ int main(int argc, char *argv[])
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
-      exit(0);
+      exit(EXIT_SUCCESS);
     }
 
     if (opt_threshold < 2)
