@@ -176,7 +176,7 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
   }
   else {
     char buf[MAXDEGREE / 8 + 1];
-    size_t t;
+    size_t t = 0;
     size_t ii;
     bool printable, warn = false;
     memset(buf, 0, degree / 8 + 1);
