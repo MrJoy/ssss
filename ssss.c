@@ -339,11 +339,11 @@ void encode_mpz(mpz_t x, enum encdec encdecmode)
 }
 
 /* evaluate polynomials efficiently
- * Note that this implementation adds an additional x^k term. This term is 
- * subtracted off on recombining. This additional term neither adds nor removes 
+ * Note that this implementation adds an additional x^k term. This term is
+ * subtracted off on recombining. This additional term neither adds nor removes
  * security but is left solely for legacy reasons.
  */
- 
+
 void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 {
   int i;
