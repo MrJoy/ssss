@@ -430,6 +430,7 @@ void split(void)
   if (! fgets(buf, sizeof(buf), stdin))
     fatal("I/O error while reading secret");
   tcsetattr(0, TCSANOW, &echo_orig);
+  fprintf(stderr, "\n");
   buf[strcspn(buf, "\r\n")] = '\0';
 
   if (! opt_security) {
