@@ -100,14 +100,14 @@ struct termios echo_orig, echo_off;
 void fatal(char *msg)
 {
   (void)tcsetattr(0, TCSANOW, &echo_orig);
-  fprintf(stderr, "%sFATAL: %s.\n", isatty(2) ? "\a" : "", msg);
+  fprintf(stderr, "%sFATAL: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
   exit(1);
 }
 
 void warning(char *msg)
 {
   if (opt_QUIET == 0)
-    fprintf(stderr, "%sWARNING: %s.\n", isatty(2) ? "\a" : "", msg);
+    fprintf(stderr, "%sWARNING: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
 }
 
 /* field arithmetic routines */
