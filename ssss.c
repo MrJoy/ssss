@@ -366,9 +366,9 @@ bool restore_secret(int n,
 #ifdef USE_RESTORE_SECRET_WORKAROUND
                    void *A,
 #else
-                   mpz_t (*A)[n],
+                   /*@out@*/ mpz_t (*A)[n],
 #endif
-                   mpz_t b[])
+                   /*@out@*/ mpz_t b[])
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k;
