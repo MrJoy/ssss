@@ -99,7 +99,7 @@ struct termios echo_orig, echo_off;
 
 void fatal(char *msg)
 {
-  tcsetattr(0, TCSANOW, &echo_orig);
+  (void)tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "%sFATAL: %s.\n", isatty(2) ? "\a" : "", msg);
   exit(1);
 }
