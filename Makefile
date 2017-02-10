@@ -24,3 +24,6 @@ clean:
 install:
 	if [ -e ssss.1 ]; then install -o root -g wheel -m 644 ssss.1 ssss-split.1 ssss-combine.1 /usr/share/man/man1; else echo "WARNING: No man page was generated, so none will be installed."; fi
 	install -o root -g wheel -m 755 ssss-split ssss-combine /usr/bin
+
+lint:
+	splint +posix-strict-lib +skip-sys-headers -preproc *.c
