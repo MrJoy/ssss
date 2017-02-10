@@ -115,7 +115,7 @@ void warning(char *msg)
 
 /* field arithmetic routines */
 
-bool field_size_valid(int deg)
+bool field_size_valid(unsigned int deg)
 {
   return (deg >= 8) && (deg <= MAXDEGREE) && (deg % 8 == 0);
 }
@@ -123,7 +123,7 @@ bool field_size_valid(int deg)
 /* initialize 'poly' to a bitfield representing the coefficients of an
    irreducible polynomial of degree 'deg' */
 
-void field_init(int deg)
+void field_init(unsigned int deg)
 {
   assert(field_size_valid(deg));
   mpz_init_set_ui(poly, 0);
