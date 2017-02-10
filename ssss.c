@@ -169,7 +169,7 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
 {
   int i;
   if (hexmode) {
-    for(i = degree / 4 - mpz_sizeinbase(x, 16); i; i--)
+    for(i = degree / 4 - mpz_sizeinbase(x, 16); i > 0; i--)
       fprintf(stream, "0");
     mpz_out_str(stream, 16, x);
     fprintf(stream, "\n");
