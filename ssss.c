@@ -85,7 +85,7 @@ int opt_diffusion = 1;
 int opt_security = 0;
 int opt_threshold = -1;
 int opt_number = -1;
-char *opt_token = NULL;
+char /*@null@*/ *opt_token = NULL;
 
 unsigned int degree;
 mpz_t poly;
