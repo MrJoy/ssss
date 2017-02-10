@@ -1,5 +1,12 @@
 # History
 
+## v0.5.6: (February 2017)
+
+* Switch to using `/dev/urandom`.
+* Fix memory lock error condition handling.
+* Fix missing intialize buffer.
+* More documentation / comment improvements.
+
 ## v0.5.5: (February 2016)
 
 * Fix build for picky compilers.  (Not relevant to clang, maybe relevant to gcc?)
