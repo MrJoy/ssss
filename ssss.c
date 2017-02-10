@@ -321,19 +321,20 @@ void encode_mpz(mpz_t x, enum encdec encdecmode)
   uint8_t v[(MAXDEGREE + 8) / 16 * 2];
   size_t t;
   int i;
+  int degree_bytes = (int)degree / 8;
   memset(v, 0, (degree + 8) / 16 * 2);
   mpz_export(v, &t, -1, 2, 1, 0, x);
   if (degree % 16 == 8)
-    v[degree / 8 - 1] = v[degree / 8];
+    v[degree_bytes - 1] = v[degree_bytes];
   if (encdecmode == ENCODE)             /* 40 rounds are more than enough!*/
-    for(i = 0; i < 40 * ((int)degree / 8); i += 2)
-      encode_slice(v, i, degree / 8, encipher_block);
+    for(i = 0; i < 40 * degree_bytes; i += 2)
+      encode_slice(v, i, degree_bytes, encipher_block);
   else
-    for(i = 40 * (degree / 8) - 2; i >= 0; i -= 2)
-      encode_slice(v, i, degree / 8, decipher_block);
+    for(i = 40 * degree_bytes - 2; i >= 0; i -= 2)
+      encode_slice(v, i, degree_bytes, decipher_block);
   if (degree % 16 == 8) {
-    v[degree / 8] = v[degree / 8 - 1];
-    v[degree / 8 - 1] = 0;
+    v[degree_bytes] = v[degree_bytes - 1];
+    v[degree_bytes - 1] = 0;
   }
   mpz_import(x, (degree + 8) / 16, -1, 2, 1, 0, v);
   assert(mpz_sizeinbits(x) <= degree);
@@ -349,7 +350,7 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 {
   int i;
   mpz_set(y, x);
-  for(i = n - 1; i; i--) {
+  for(i = n - 1; i > 0; i--) {
     field_add(y, y, coeff[i]);
     field_mult(y, y, x);
   }
@@ -361,7 +362,7 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 #define MPZ_SWAP(A, B) \
   do { mpz_set(h, A); mpz_set(A, B); mpz_set(B, h); } while(0)
 
-int restore_secret(int n,
+bool restore_secret(int n,
 #ifdef USE_RESTORE_SECRET_WORKAROUND
                    void *A,
 #else
@@ -370,18 +371,19 @@ int restore_secret(int n,
                    mpz_t b[])
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
-  int i, j, k, found;
+  int i, j, k;
+  bool found;
   mpz_t h;
   mpz_init(h);
   for(i = 0; i < n; i++) {
     if (! mpz_cmp_ui(AA[i][i], 0)) {
-      for(found = 0, j = i + 1; j < n; j++)
+      for(found = false, j = i + 1; j < n; j++)
         if (mpz_cmp_ui(AA[i][j], 0)) {
-          found = 1;
+          found = true;
           break;
         }
       if (! found)
-        return -1;
+        return false;
       for(k = i; k < n; k++)
         MPZ_SWAP(AA[k][i], AA[k][j]);
       MPZ_SWAP(b[i], b[j]);
@@ -402,7 +404,7 @@ int restore_secret(int n,
   field_invert(h, AA[n - 1][n - 1]);
   field_mult(b[n - 1], b[n - 1], h);
   mpz_clear(h);
-  return 0;
+  return true;
 }
 
 /* Prompt for a secret, generate shares for it */
@@ -417,13 +419,13 @@ void split(void)
   if (! opt_quiet) {
     fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
                   opt_threshold, opt_number);
-    if (opt_security)
+    if (opt_security != 0)
       fprintf(stderr, "a %d bit", opt_security);
     else
       fprintf(stderr, "dynamic");
     fprintf(stderr, " security level.\n");
 
-    deg = opt_security ? opt_security : MAXDEGREE;
+    deg = (opt_security != 0) ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
       fprintf(stderr, "as most %d hex digits: ", deg / 4);
@@ -437,7 +439,7 @@ void split(void)
   fprintf(stderr, "\n");
   buf[strcspn(buf, "\r\n")] = '\0';
 
-  if (! opt_security) {
+  if (opt_security == 0) {
     opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
     if (! field_size_valid(opt_security))
       fatal("security level invalid (secret too long?)");
@@ -471,7 +473,7 @@ void split(void)
     horner(opt_threshold, y, x, (const mpz_t*)coeff);
     if (opt_token)
       fprintf(stdout, "%s-", opt_token);
-    fprintf(stdout, "%0*d-", fmt_len, i + 1);
+    fprintf(stdout, "%0*d-", (int)fmt_len, i + 1);
     field_print(stdout, y, 1);
   }
   mpz_clear(x);
@@ -533,7 +535,7 @@ void combine(void)
     field_add(y[i], y[i], x);
   }
   mpz_clear(x);
-  if (restore_secret(opt_threshold, A, y))
+  if (!restore_secret(opt_threshold, A, y))
     fatal("shares inconsistent. Perhaps a single share was used twice");
 
   if (opt_diffusion) {
