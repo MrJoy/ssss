@@ -145,20 +145,20 @@ void field_deinit(void)
 void field_import(mpz_t x, const char *s, bool hexmode)
 {
   if (hexmode) {
-    if (strlen(s) > degree / 4)
+    if (strlen(s) > (size_t)(degree / 4))
       fatal("input string too long");
-    if (strlen(s) < degree / 4)
+    if (strlen(s) < (size_t)(degree / 4))
       warning("input string too short, adding null padding on the left");
     if (mpz_set_str(x, s, 16) || (mpz_cmp_ui(x, 0) < 0))
       fatal("invalid syntax");
   }
   else {
     int i;
-    int warn = 0;
-    if (strlen(s) > degree / 8)
+    bool warn = false;
+    if (strlen(s) > (size_t)(degree / 8))
       fatal("input string too long");
-    for(i = strlen(s) - 1; i >= 0; i--)
-      warn = warn || (s[i] < 32) || (s[i] >= 127);
+    for(i = (int)strlen(s) - 1; i >= 0; i--)
+      warn = warn || (s[i] < (char)32) || (s[i] >= (char)127);
     if (warn)
       warning("binary data detected, use -x mode instead");
     mpz_import(x, strlen(s), 1, 1, 0, 0, s);
@@ -177,8 +177,8 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
   else {
     char buf[MAXDEGREE / 8 + 1];
     size_t t;
-    unsigned int i;
-    int printable, warn = 0;
+    size_t i;
+    bool printable, warn = false;
     memset(buf, 0, degree / 8 + 1);
     mpz_export(buf, &t, 1, 1, 0, 0, x);
     for(i = 0; i < t; i++) {
@@ -490,7 +490,7 @@ void combine(void)
   char buf[MAXLINELEN];
   char *a, *b;
   int i, j;
-  unsigned s = 0;
+  size_t s = 0;
 
   mpz_init(x);
   if (! opt_quiet)
@@ -505,12 +505,12 @@ void combine(void)
     if (! (a = strchr(buf, '-')))
       fatal("invalid syntax");
     *a++ = 0;
-    if ((b = strchr(a, '-')))
+    if ((b = strchr(a, '-')) != 0)
       *b++ = 0;
     else
       b = a, a = buf;
 
-    if (! s) {
+    if (s == 0) {
       s = 4 * strlen(b);
       if (! field_size_valid(s))
         fatal("share has illegal length");
@@ -518,7 +518,7 @@ void combine(void)
     } else if (s != 4 * strlen(b))
       fatal("shares have different security levels");
 
-    if (! (j = atoi(a)))
+    if ((j = atoi(a)) == 0)
       fatal("invalid share");
     mpz_set_ui(x, j);
     mpz_init_set_ui(A[opt_threshold - 1][i], 1);
