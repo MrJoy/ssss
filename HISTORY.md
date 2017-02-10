@@ -6,6 +6,7 @@
 * Fix memory lock error condition handling.
 * Fix missing intialize buffer.
 * More documentation / comment improvements.
+* Add newline after reading secret so first share isn't placed after the prompt.
 
 
 ## v0.5.5: (February 2016)
