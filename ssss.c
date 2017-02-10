@@ -647,10 +647,10 @@ int main(int argc, char *argv[])
     if (opt_number < opt_threshold)
       fatal("invalid parameters: number of shares smaller than threshold");
 
-    if (opt_security && ! field_size_valid(opt_security))
+    if ((opt_security != 0) && ! field_size_valid(opt_security))
       fatal("invalid parameters: invalid security level");
 
-    if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
+    if ((opt_token != 0) && (strlen(opt_token) > MAXTOKENLEN))
       fatal("invalid parameters: token too long");
 
     split();
