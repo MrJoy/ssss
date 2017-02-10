@@ -79,33 +79,33 @@ static const uint8_t irred_coeff[] = {
   3,1,15,7,5,19,18,10,7,5,3,12,7,2,7,5,1,14,9,6,10,3,2,15,13,12,12,11,9,16,
   9,7,12,9,3,9,5,2,17,10,6,24,9,3,17,15,13,5,4,3,19,17,8,15,6,3,19,6,1 };
 
-bool opt_quiet = false;
-bool opt_QUIET = false;
-bool opt_hex = false;
-bool opt_diffusion = true;
-int opt_security = 0;
-int opt_threshold = -1;
-int opt_number = -1;
-char /*@null@*/ *opt_token = NULL;
+static bool opt_quiet = false;
+static bool opt_QUIET = false;
+static bool opt_hex = false;
+static bool opt_diffusion = true;
+static int opt_security = 0;
+static int opt_threshold = -1;
+static int opt_number = -1;
+static char /*@null@*/ *opt_token = NULL;
 
-unsigned int degree;
-mpz_t poly;
-int cprng;
-struct termios echo_orig, echo_off;
+static unsigned int degree;
+static mpz_t poly;
+static int cprng;
+static struct termios echo_orig, echo_off;
 
 #define mpz_lshift(A, B, l) mpz_mul_2exp(A, B, l)
 #define mpz_sizeinbits(A) (mpz_cmp_ui(A, 0) ? mpz_sizeinbase(A, 2) : 0)
 
 /* emergency abort and warning functions */
 
-void fatal(char *msg)
+static void fatal(char *msg)
 {
   (void)tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "%sFATAL: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
   exit(EXIT_FAILURE);
 }
 
-void warning(char *msg)
+static void warning(char *msg)
 {
   if (opt_QUIET == 0)
     fprintf(stderr, "%sWARNING: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
@@ -113,7 +113,7 @@ void warning(char *msg)
 
 /* field arithmetic routines */
 
-bool field_size_valid(unsigned int deg)
+static bool field_size_valid(unsigned int deg)
 {
   return (deg >= 8) && (deg <= MAXDEGREE) && (deg % 8 == 0);
 }
@@ -121,7 +121,7 @@ bool field_size_valid(unsigned int deg)
 /* initialize 'poly' to a bitfield representing the coefficients of an
    irreducible polynomial of degree 'deg' */
 
-void field_init(unsigned int deg)
+static void field_init(unsigned int deg)
 {
   assert(field_size_valid(deg));
   mpz_init_set_ui(poly, 0);
@@ -133,14 +133,14 @@ void field_init(unsigned int deg)
   degree = deg;
 }
 
-void field_deinit(void)
+static void field_deinit(void)
 {
   mpz_clear(poly);
 }
 
 /* I/O routines for GF(2^deg) field elements */
 
-void field_import(mpz_t x, const char *s, bool hexmode)
+static void field_import(mpz_t x, const char *s, bool hexmode)
 {
   if (hexmode) {
     if (strlen(s) > (size_t)(degree / 4))
@@ -163,7 +163,7 @@ void field_import(mpz_t x, const char *s, bool hexmode)
   }
 }
 
-void field_print(FILE* stream, const mpz_t x, bool hexmode)
+static void field_print(FILE* stream, const mpz_t x, bool hexmode)
 {
   int i;
   if (hexmode) {
@@ -192,12 +192,12 @@ void field_print(FILE* stream, const mpz_t x, bool hexmode)
 
 /* basic field arithmetic in GF(2^deg) */
 
-void field_add(mpz_t z, const mpz_t x, const mpz_t y)
+static void field_add(mpz_t z, const mpz_t x, const mpz_t y)
 {
   mpz_xor(z, x, y);
 }
 
-void field_mult(mpz_t z, const mpz_t x, const mpz_t y)
+static void field_mult(mpz_t z, const mpz_t x, const mpz_t y)
 {
   mpz_t b;
   unsigned int i;
@@ -217,7 +217,7 @@ void field_mult(mpz_t z, const mpz_t x, const mpz_t y)
   mpz_clear(b);
 }
 
-void field_invert(mpz_t z, const mpz_t x)
+static void field_invert(mpz_t z, const mpz_t x)
 {
   mpz_t u, v, g, h;
   int i;
@@ -244,19 +244,19 @@ void field_invert(mpz_t z, const mpz_t x)
 
 /* routines for the random number generator */
 
-void cprng_init(void)
+static void cprng_init(void)
 {
   if ((cprng = open(RANDOM_SOURCE, O_RDONLY)) < 0)
     fatal("couldn't open " RANDOM_SOURCE);
 }
 
-void cprng_deinit(void)
+static void cprng_deinit(void)
 {
   if (close(cprng) < 0)
     fatal("couldn't close " RANDOM_SOURCE);
 }
 
-void cprng_read(mpz_t x)
+static void cprng_read(mpz_t x)
 {
   char buf[MAXDEGREE / 8];
   unsigned int count;
@@ -271,7 +271,7 @@ void cprng_read(mpz_t x)
 
 /* a 64 bit pseudo random permutation (based on the XTEA cipher) */
 
-void encipher_block(uint32_t *v)
+static void encipher_block(uint32_t *v)
 {
   uint32_t sum = 0, delta = 0x9E3779B9;
   int i;
@@ -282,7 +282,7 @@ void encipher_block(uint32_t *v)
   }
 }
 
-void decipher_block(uint32_t *v)
+static void decipher_block(uint32_t *v)
 {
   uint32_t sum = 0xC6EF3720, delta = 0x9E3779B9;
   int i;
@@ -293,8 +293,8 @@ void decipher_block(uint32_t *v)
   }
 }
 
-void encode_slice(uint8_t *data, int idx, int len,
-                  void (*process_block)(uint32_t*))
+static void encode_slice(uint8_t *data, int idx, int len,
+                         void (*process_block)(uint32_t*))
 {
   uint32_t v[2];
   int i;
@@ -314,7 +314,7 @@ void encode_slice(uint8_t *data, int idx, int len,
 
 enum encdec {ENCODE, DECODE};
 
-void encode_mpz(mpz_t x, enum encdec encdecmode)
+static void encode_mpz(mpz_t x, enum encdec encdecmode)
 {
   uint8_t v[(MAXDEGREE + 8) / 16 * 2];
   size_t t;
@@ -344,7 +344,7 @@ void encode_mpz(mpz_t x, enum encdec encdecmode)
  * security but is left solely for legacy reasons.
  */
 
-void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
+static void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 {
   int i;
   mpz_set(y, x);
@@ -360,13 +360,13 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
 #define MPZ_SWAP(A, B) \
   do { mpz_set(h, A); mpz_set(A, B); mpz_set(B, h); } while(0)
 
-bool restore_secret(int n,
+static bool restore_secret(int n,
 #ifdef USE_RESTORE_SECRET_WORKAROUND
-                   void *A,
+                           void *A,
 #else
-                   /*@out@*/ mpz_t (*A)[n],
+                           /*@out@*/ mpz_t (*A)[n],
 #endif
-                   /*@out@*/ mpz_t b[])
+                           /*@out@*/ mpz_t b[])
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k;
@@ -407,7 +407,7 @@ bool restore_secret(int n,
 
 /* Prompt for a secret, generate shares for it */
 
-void split(void)
+static void split(void)
 {
   unsigned int fmt_len;
   mpz_t x, y, coeff[opt_threshold];
@@ -484,7 +484,7 @@ void split(void)
 
 /* Prompt for shares, calculate the secret */
 
-void combine(void)
+static void combine(void)
 {
   mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
   char buf[MAXLINELEN];
