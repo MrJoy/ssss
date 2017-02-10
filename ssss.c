@@ -431,8 +431,10 @@ static void split(void)
       fprintf(stderr, "at most %u ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
-  if (! fgets(buf, sizeof(buf), stdin))
+  if (! fgets(buf, sizeof(buf), stdin)) {
     fatal("I/O error while reading secret");
+    return; // This exists solely as a hint to splint that no unchecked access to `buf` can happen.
+  }
   tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "\n");
   buf[strcspn(buf, "\r\n")] = '\0';
@@ -499,8 +501,10 @@ static void combine(void)
     if (! opt_quiet)
       fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
 
-    if (! fgets(buf, sizeof(buf), stdin))
+    if (! fgets(buf, sizeof(buf), stdin)) {
       fatal("I/O error while reading shares");
+      return; // This exists solely as a hint to splint that no unchecked access to `buf` can happen.
+    }
     buf[strcspn(buf, "\r\n")] = '\0';
     if (! (a = strchr(buf, '-')))
       fatal("invalid syntax");
