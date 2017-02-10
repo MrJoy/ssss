@@ -42,6 +42,7 @@
  */
 
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -114,7 +115,7 @@ void warning(char *msg)
 
 /* field arithmetic routines */
 
-int field_size_valid(int deg)
+bool field_size_valid(int deg)
 {
   return (deg >= 8) && (deg <= MAXDEGREE) && (deg % 8 == 0);
 }
