@@ -4,3 +4,8 @@ I would like to thank the following people for comments and code:
   Stefan Schlesinger, Daniel Bielefeldt (error reporting)
   Olaf Mersmann (memory locking, echo suppression)
   Alex Popov (windows port)
+  Cory Wright (makefile errors, and output formatting improvements)
+  iteratee (clarifying quirks of the math)
+  Emre Can Kucukoglu (fixes for linking errors)
+  Hiroaki Mizuguchi (fixes for memory locking not being enforced and buffer not being initialized properly)
+  Benedict Hartley (documentation typo)
