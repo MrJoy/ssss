@@ -27,3 +27,6 @@ install:
 
 lint:
 	splint +posix-strict-lib +skip-sys-headers -preproc -unrecog '-Dmpz_t=void*' -globs +matchanyintegral -usedef -retvalint -noeffect -type -mustdefine *.c
+
+test: compile
+	./test.sh
