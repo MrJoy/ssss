@@ -83,7 +83,7 @@ static bool opt_quiet = false;
 static bool opt_QUIET = false;
 static bool opt_hex = false;
 static bool opt_diffusion = true;
-static int opt_security = 0;
+static unsigned int opt_security = 0;
 static int opt_threshold = -1;
 static int opt_number = -1;
 static char /*@null@*/ *opt_token = NULL;
@@ -409,16 +409,16 @@ static bool restore_secret(int n,
 
 static void split(void)
 {
-  unsigned int fmt_len;
+  unsigned int fmt_len, deg;
   mpz_t x, y, coeff[opt_threshold];
   char buf[MAXLINELEN];
-  int deg, i;
+  int i;
   for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   if (! opt_quiet) {
     fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
                   opt_threshold, opt_number);
     if (opt_security != 0)
-      fprintf(stderr, "a %d bit", opt_security);
+      fprintf(stderr, "a %u bit", opt_security);
     else
       fprintf(stderr, "dynamic");
     fprintf(stderr, " security level.\n");
@@ -426,9 +426,9 @@ static void split(void)
     deg = (opt_security != 0) ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
-      fprintf(stderr, "as most %d hex digits: ", deg / 4);
+      fprintf(stderr, "as most %u hex digits: ", deg / 4);
     else
-      fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
+      fprintf(stderr, "at most %u ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
   if (! fgets(buf, sizeof(buf), stdin))
@@ -438,11 +438,11 @@ static void split(void)
   buf[strcspn(buf, "\r\n")] = '\0';
 
   if (opt_security == 0) {
-    opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
+    opt_security = (unsigned int)(opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf));
     if (! field_size_valid(opt_security))
       fatal("security level invalid (secret too long?)");
     if (! opt_quiet)
-      fprintf(stderr, "Using a %d bit security level.\n", opt_security);
+      fprintf(stderr, "Using a %u bit security level.\n", opt_security);
   }
 
   field_init(opt_security);
@@ -603,7 +603,7 @@ int main(int argc, char *argv[])
     case 'q': opt_quiet = true; break;
     case 'Q': opt_QUIET = opt_quiet = true; break;
     case 'x': opt_hex = true; break;
-    case 's': opt_security = atoi(optarg); break;
+    case 's': opt_security = (unsigned int)atoi(optarg); break;
     case 't': opt_threshold = atoi(optarg); break;
     case 'n': opt_number = atoi(optarg); break;
     case 'w': opt_token = optarg; break;
