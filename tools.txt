@@ -1,4 +1,5 @@
 clang-format
 http://clang-analyzer.llvm.org/
-cppcheck
+http://cppcheck.sourceforge.net
 https://en.wikipedia.org/wiki/List_of_tools_for_static_code_analysis#C.2C_C.2B.2B
+https://spinroot.com/static/
