@@ -182,7 +182,7 @@ static void field_print(FILE* stream, const mpz_t x, bool hexmode)
     size_t t = 0;
     size_t ii;
     bool printable, warn = false;
-    memset(buf, 0, degree / 8 + 1);
+    memset(buf, 0, (size_t)(degree / 8 + 1));
     mpz_export(buf, &t, 1, 1, 0, 0, x);
     for(ii = 0; ii < t; ii++) {
       printable = (buf[ii] >= (char)32) && (buf[ii] < (char)127);
@@ -264,10 +264,9 @@ static void cprng_deinit(void)
 static void cprng_read(mpz_t x)
 {
   char buf[MAXDEGREE / 8];
-  unsigned int count;
-  int i;
-  for(count = 0; count < degree / 8; count += i)
-    if ((i = read(cprng, buf + count, degree / 8 - count)) < 0) {
+  ssize_t count, i;
+  for(count = 0; count < (ssize_t)(degree / 8); count += i)
+    if ((i = read(cprng, buf + count, (size_t)(degree / 8 - count))) < 0) {
       close(cprng);
       fatal("couldn't read from " RANDOM_SOURCE);
     }
@@ -325,7 +324,7 @@ static void encode_mpz(mpz_t x, enum encdec encdecmode)
   size_t t;
   int i;
   int degree_bytes = (int)degree / 8;
-  memset(v, 0, (degree + 8) / 16 * 2);
+  memset(v, 0, (size_t)((degree + 8) / 16 * 2));
   mpz_export(v, &t, -1, 2, 1, 0, x);
   if (degree % 16 == 8)
     v[degree_bytes - 1] = v[degree_bytes];
@@ -436,7 +435,7 @@ static void split(void)
       fprintf(stderr, "at most %u ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
-  if (! fgets(buf, sizeof(buf), stdin)) {
+  if (! fgets(buf, (int)sizeof(buf), stdin)) {
     fatal("I/O error while reading secret");
     return; // This exists solely as a hint to splint that no unchecked access to `buf` can happen.
   }
