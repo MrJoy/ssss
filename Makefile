@@ -26,7 +26,7 @@ install:
 	install -o root -g wheel -m 755 ssss-split ssss-combine /usr/bin
 
 lint:
-	splint +posix-strict-lib +skip-sys-headers -preproc -unrecog '-Dmpz_t=void*' -globs +matchanyintegral -usedef -retvalint -noeffect -type -mustdefine *.c
+	splint +posix-strict-lib +skip-sys-headers -preproc -unrecog '-Dmpz_t=void*' -incondefs -usedef -retvalint -noeffect -type -mustdefine *.c
 
 test: compile
 	./test.sh

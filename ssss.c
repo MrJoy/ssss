@@ -57,6 +57,7 @@
 #include <gmp.h>
 
 extern int /*@alt void@*/ fprintf(FILE * restrict stream, const char * restrict format, ...);
+extern int /*@unchecked@*/ errno;
 
 #define VERSION "0.5.6"
 #define RANDOM_SOURCE "/dev/urandom"
