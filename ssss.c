@@ -56,6 +56,10 @@
 
 #include <gmp.h>
 
+extern int /*@alt void@*/ tcgetattr(int fildes, struct termios *termios_p);
+extern int /*@alt void@*/ tcsetattr(int fildes, int optional_actions, const struct termios *termios_p);
+extern int /*@alt void@*/ close(int fildes);
+extern int /*@alt void@*/ fputs(const char *restrict s, FILE *restrict stream);
 extern int /*@alt void@*/ fprintf(FILE * restrict stream, const char * restrict format, ...);
 extern int /*@unchecked@*/ errno;
 
@@ -101,7 +105,7 @@ static struct termios echo_orig, echo_off;
 
 static void fatal(char *msg)
 {
-  (void)tcsetattr(0, TCSANOW, &echo_orig);
+  tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "%sFATAL: %s.\n", (isatty(2) != 0) ? "\a" : "", msg);
   exit(EXIT_FAILURE);
 }
@@ -597,7 +601,7 @@ int main(int argc, char *argv[])
   if (getuid() != geteuid())
     seteuid(getuid());
 
-  tcgetattr(0, &echo_orig);
+  (void)tcgetattr(0, &echo_orig);
   echo_off = echo_orig;
   echo_off.c_lflag &= ~ECHO;
 
