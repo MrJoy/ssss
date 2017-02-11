@@ -597,8 +597,10 @@ int main(int argc, char *argv[])
   }
 #endif
 
-  if (getuid() != geteuid())
-    seteuid(getuid());
+  if (getuid() != geteuid()) {
+    if (seteuid(getuid()) != 0)
+      fatal("Couldn't set effective UID");
+  }
 
   (void)tcgetattr(0, &echo_orig);
   echo_off = echo_orig;
