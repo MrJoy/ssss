@@ -103,6 +103,7 @@ static struct termios echo_orig, echo_off;
 
 /* emergency abort and warning functions */
 
+static void fatal(char *msg) __attribute__((noreturn));
 static void fatal(char *msg)
 {
   tcsetattr(0, TCSANOW, &echo_orig);

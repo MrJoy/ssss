@@ -5,7 +5,7 @@ compile: ssss-split ssss-combine
 doc: ssss.1 ssss.1.html
 
 ssss-split: ssss.c
-	$(CC) -W -Werror -O2 -o ssss-split ssss.c -lgmp
+	$(CC) -pedantic -Werror -O2 -o ssss-split ssss.c -lgmp
 	strip ssss-split
 
 ssss-combine: ssss-split
