@@ -1,10 +1,10 @@
 Summary: Shamir's secret sharing scheme
 Name: ssss
-Version: 0.5.6
+Version: %{_version}
 Release: 1%{?dist}
 License: GPLv2
 Url:  https://github.com/NYDIG/%{name}
-Source: https://github.com/NYDIG/ssss/archive/releases/v%{version}.zip
+Source: %{name}-%{version}.tar.gz
 Source1: ssss.1.gz
 Provides: ssss = %{version}
 
