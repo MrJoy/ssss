@@ -40,8 +40,8 @@ rm -rf ${buildroot}
 %{_bindir}/*
 
 %changelog
-* Sun May 13 2018 NYDIG Release Engineering <support@fnydig.com> - 0.5.6-1
-- built for https://github.com/NYDIG/
+* Sun May 13 2018 NYDIG Engineering <support@nydig.com> - 0.5.6.1-1
+- adapted for https://github.com/NYDIG/ssss
 
 * Fri Feb 09 2018 Fedora Release Engineering <releng@fedoraproject.org> - 0.5-19.2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
