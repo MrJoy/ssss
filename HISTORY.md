@@ -1,5 +1,8 @@
 # History
 
+## v0.5.6.1: (May 2018)
+* added ssss.spec file for rpm build
+
 ## v0.5.6: (February 2017)
 
 * Switch to using `/dev/urandom`.
