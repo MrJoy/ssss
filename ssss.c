@@ -498,13 +498,13 @@ void combine(void)
     if (! fgets(buf, sizeof(buf), stdin))
       fatal("I/O error while reading shares");
     buf[strcspn(buf, "\r\n")] = '\0';
-    if (! (a = strchr(buf, '-')))
+    if (! (b = strrchr(buf, '-')))
       fatal("invalid syntax");
-    *a++ = 0;
-    if ((b = strchr(a, '-')))
-      *b++ = 0;
+    *b++ = 0;
+    if ((a = strrchr(buf, '-')))
+      *a++ = 0;
     else
-      b = a, a = buf;
+      a = buf;
 
     if (! s) {
       s = 4 * strlen(b);
