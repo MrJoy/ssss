@@ -9,8 +9,9 @@ href="http://masqmail.cx/xmltoman/xmltoman.xsl" ?>
 
 <synopsis>
       <cmd>ssss-split -t <arg>threshold</arg> -n <arg>shares</arg> [-w <arg>token</arg>]
-         [-s <arg>level</arg>] [-x] [-q] [-Q] [-D] [-v]</cmd>
-      <cmd>ssss-combine -t <arg>threshold</arg> [-x] [-q] [-Q] [-D] [-v]</cmd>
+         [-s <arg>level</arg>] [-r] [-x] [-q] [-Q] [-D] [-v]</cmd>
+      <cmd>ssss-combine -t <arg>threshold</arg> [-r -n <arg>shares</arg>]
+         [-x] [-q] [-Q] [-D] [-v]</cmd>
 </synopsis>
 
 <description>
@@ -68,6 +69,16 @@ and the reconstruction of a secret using user-provided shares.</p>
       value given is 0) the security level is chosen automatically
       depending on the secret's length.  The security level directly
       determines the length of the shares.</p>
+</optdesc>
+</option>
+
+      <option><p><opt>-r</opt></p>
+<optdesc>
+      <p>Recovery mode: <opt>ssss-combine</opt> reads in a set of <arg>t</arg>
+      shares and reconstruct <arg>n</arg> shares again. <opt>ssss-split</opt>
+      doesn't generate shares randomly, but asks the secret and <arg>t</arg> -
+      1 shares (secret is treated here as a share). Usable to recover
+      forgotten shares.</p>
 </optdesc>
 </option>
 
