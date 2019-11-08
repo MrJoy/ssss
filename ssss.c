@@ -421,24 +421,13 @@ int restore_secret(int n,
   return 0;
 }
 
-/* Prompt for a secret, generate shares for it */
+/* ask for a secret */
 
-void split(void)
+void ask_secret(mpz_t secret)
 {
-  unsigned int fmt_len;
-  mpz_t x, y, coeff[opt_threshold];
   char buf[MAXLINELEN];
-  int deg, i;
-  for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
+  int deg;
   if (! opt_quiet) {
-    fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
-            opt_threshold, opt_number);
-    if (opt_security)
-      fprintf(stderr, "a %d bit", opt_security);
-    else
-      fprintf(stderr, "dynamic");
-    fprintf(stderr, " security level.\n");
-
     deg = opt_security ? opt_security : MAXDEGREE;
     fprintf(stderr, "Enter the secret, ");
     if (opt_hex)
@@ -463,15 +452,35 @@ void split(void)
 
   field_init(opt_security);
 
-  mpz_init(coeff[0]);
-  field_import(coeff[0], buf, opt_hex);
+  field_import(secret, buf, opt_hex);
 
   if (opt_diffusion) {
     if (degree >= 64)
-      encode_mpz(coeff[0], ENCODE);
+      encode_mpz(secret, ENCODE);
     else
       warning("security level too small for the diffusion layer");
   }
+}
+
+void calculate_shares(const mpz_t coeff[]);
+
+/* Prompt for a secret, generate shares for it */
+
+void split(void)
+{
+  mpz_t coeff[opt_threshold];
+  int i;
+  if (! opt_quiet) {
+    fprintf(stderr, "Generating shares using a (%d,%d) scheme with ",
+            opt_threshold, opt_number);
+    if (opt_security)
+      fprintf(stderr, "a %d bit", opt_security);
+    else
+      fprintf(stderr, "dynamic");
+    fprintf(stderr, " security level.\n");
+  }
+  mpz_init(coeff[0]);
+  ask_secret(coeff[0]);
 
   cprng_init();
   for(i = 1; i < opt_threshold; i++) {
@@ -480,11 +489,26 @@ void split(void)
   }
   cprng_deinit();
 
+  calculate_shares(coeff);
+
+  for(i = 0; i < opt_threshold; i++)
+    mpz_clear(coeff[i]);
+  field_deinit();
+}
+
+/* calculate shares */
+
+void calculate_shares(const mpz_t coeff[])
+{
+  unsigned int fmt_len;
+  mpz_t x, y;
+  int i;
+  for(fmt_len = 1, i = opt_number; i >= 10; i /= 10, fmt_len++);
   mpz_init(x);
   mpz_init(y);
   for(i = 0; i < opt_number; i++) {
     mpz_set_ui(x, i + 1);
-    horner(opt_threshold, y, x, (const mpz_t*)coeff);
+    horner(opt_threshold, y, x, coeff);
     if (opt_token)
       fprintf(stdout, "%s-", opt_token);
     fprintf(stdout, "%0*d-", fmt_len, i + 1);
@@ -492,10 +516,6 @@ void split(void)
   }
   mpz_clear(x);
   mpz_clear(y);
-
-  for(i = 0; i < opt_threshold; i++)
-    mpz_clear(coeff[i]);
-  field_deinit();
 }
 
 /* Prompt for shares, calculate the secret */
