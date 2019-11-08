@@ -85,6 +85,7 @@ int opt_security = 0;
 int opt_threshold = -1;
 int opt_number = -1;
 char *opt_token = NULL;
+int opt_recovery = 0;
 
 unsigned int degree;
 mpz_t poly;
@@ -554,11 +555,13 @@ void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
   field_import(share, b, 1);
 }
 
-/* Prompt for shares, calculate the secret */
+/* Prompt for shares, calculate the secret, recalculate same shares
+ * if necessary */
 
 void combine(int with_secret)
 {
   mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
+  mpz_t ry[opt_threshold];
   int i, j;
   unsigned s = 0;
 
@@ -583,7 +586,7 @@ void combine(int with_secret)
     field_mult(x, x, A[0][i]);
     field_add(y[i], y[i], x);
   }
-  if (restore_secret(opt_threshold, A, y, 0))
+  if (restore_secret(opt_threshold, A, y, opt_recovery))
     fatal("shares inconsistent. Perhaps a single share was used twice");
 
   if (! with_secret) {
@@ -599,7 +602,16 @@ void combine(int with_secret)
     field_print(stdout, x, opt_hex);
   }
   mpz_clear(x);
-/* TODO: if (opt_recovery) */
+  if (opt_recovery) {
+    /* TODO: remove reversing */
+    for (i = 0; i < opt_threshold; i++) {
+      mpz_init(ry[i]);
+      mpz_set(ry[i], y[opt_threshold - 1 - i]);
+    }
+    calculate_shares((const mpz_t*)ry);
+    for (i = 0; i < opt_threshold; i++)
+      mpz_clear(ry[i]);
+  }
 
   for (i = 0; i < opt_threshold; i++) {
     for (j = 0; j < opt_threshold; j++)
@@ -646,9 +658,9 @@ int main(int argc, char *argv[])
   opt_help = argc == 1;
   const char* flags =
 #if ! NOMLOCK
-    "MvDhqQxs:t:n:w:";
+    "MvDhqQxrs:t:n:w:";
 #else
-    "vDhqQxs:t:n:w:";
+    "vDhqQxrs:t:n:w:";
 #endif
 
   while((i = getopt(argc, argv, flags)) != -1)
@@ -663,6 +675,7 @@ int main(int argc, char *argv[])
     case 'n': opt_number = atoi(optarg); break;
     case 'w': opt_token = optarg; break;
     case 'D': opt_diffusion = 0; break;
+    case 'r': opt_recovery = 1; break;
 #if ! NOMLOCK
     case 'M':
       if(failedMemoryLock != 0)
@@ -686,7 +699,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
             " [-M]"
 #endif
-            " [-x] [-q] [-Q] [-D] [-v]\n",
+            " [-r] [-x] [-q] [-Q] [-D] [-v]\n",
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
@@ -705,7 +718,12 @@ int main(int argc, char *argv[])
     if (opt_token && (strlen(opt_token) > MAXTOKENLEN))
       fatal("invalid parameters: token too long");
 
-    split();
+    /* Splitting in recovery mode is the same as combining, where one share
+     * is the secret itself. */
+    if (opt_recovery)
+      combine(1);
+    else
+      split();
   }
   else {
     if (opt_help || opt_showversion) {
@@ -715,7 +733,7 @@ int main(int argc, char *argv[])
 #if ! NOMLOCK
             " [-M]"
 #endif
-            " [-x] [-q] [-Q] [-D] [-v]\n",
+            " [-r -n shares] [-x] [-q] [-Q] [-D] [-v]\n",
             stderr);
       if (opt_showversion)
         fputs("\nVersion: " VERSION, stderr);
