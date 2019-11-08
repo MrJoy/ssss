@@ -190,6 +190,8 @@ void field_print(FILE* stream, const mpz_t x, int hexmode)
 
 /* basic field arithmetic in GF(2^deg) */
 
+/* field_sub is the same as field_add in this arithmetic. */
+
 void field_add(mpz_t z, const mpz_t x, const mpz_t y)
 {
   mpz_xor(z, x, y);
@@ -363,12 +365,16 @@ int restore_secret(int n,
 #else
                    mpz_t (*A)[n],
 #endif
-                   mpz_t b[])
+                   mpz_t b[], int recovery)
 {
   mpz_t (*AA)[n] = (mpz_t (*)[n])A;
   int i, j, k, found;
   mpz_t h;
   mpz_init(h);
+  /* Gaussian elimination. To imagine transformation into an upper triangular
+   * matrix, treat AA[i][j] as AA[column][row] (perhaps this is because
+   * Fortran matrix storage layout was reinterpreted as C storage layout).
+   * Remember the field_add and field_sub sameness in this field arithmetic. */
   for(i = 0; i < n; i++) {
     if (! mpz_cmp_ui(AA[i][i], 0)) {
       for(found = 0, j = i + 1; j < n; j++)
@@ -395,8 +401,22 @@ int restore_secret(int n,
       }
     }
   }
+  /* The matrix is in upper triangular form now.
+   * Calculate the last coefficient (the secret). */
   field_invert(h, AA[n - 1][n - 1]);
   field_mult(b[n - 1], b[n - 1], h);
+  if (recovery) {
+    /* Transform AA to identity matrix and calculate other coefficients
+     * to recover other shares. */
+    for(i = n - 2; i >= 0; i--) {
+      for(j = n - 1; j > i; j--) {
+        field_mult(h, b[j], AA[j][i]);
+        field_add(b[i], b[i], h);
+      }
+      field_invert(h, AA[i][i]);
+      field_mult(b[i], b[i], h);
+    }
+  }
   mpz_clear(h);
   return 0;
 }
@@ -529,7 +549,7 @@ void combine(void)
     field_add(y[i], y[i], x);
   }
   mpz_clear(x);
-  if (restore_secret(opt_threshold, A, y))
+  if (restore_secret(opt_threshold, A, y, 0))
     fatal("shares inconsistent. Perhaps a single share was used twice");
 
   if (opt_diffusion) {
