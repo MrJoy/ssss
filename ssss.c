@@ -518,13 +518,47 @@ void calculate_shares(const mpz_t coeff[])
   mpz_clear(y);
 }
 
-/* Prompt for shares, calculate the secret */
+/* ask for i-th share (*s - share size (in/out parameter)) */
 
-void combine(void)
+void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
 {
-  mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
   char buf[MAXLINELEN];
   char *a, *b;
+  int j;
+  assert(s);
+  if (! opt_quiet)
+    fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
+
+  if (! fgets(buf, sizeof(buf), stdin))
+    fatal("I/O error while reading shares");
+  buf[strcspn(buf, "\r\n")] = '\0';
+  if (! (b = strrchr(buf, '-')))
+    fatal("invalid syntax");
+  *b++ = 0;
+  if ((a = strrchr(buf, '-')))
+    *a++ = 0;
+  else
+    a = buf;
+
+  if (! *s) {
+    *s = 4 * strlen(b);
+    if (! field_size_valid(*s))
+      fatal("share has illegal length");
+    field_init(*s);
+  } else if (*s != 4 * strlen(b))
+      fatal("shares have different security levels");
+
+  if (! (j = atoi(a)))
+    fatal("invalid share");
+  mpz_set_ui(x, j);
+  field_import(share, b, 1);
+}
+
+/* Prompt for shares, calculate the secret */
+
+void combine(int with_secret)
+{
+  mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
   int i, j;
   unsigned s = 0;
 
@@ -532,56 +566,40 @@ void combine(void)
   if (! opt_quiet)
     fprintf(stderr, "Enter %d shares separated by newlines:\n", opt_threshold);
   for (i = 0; i < opt_threshold; i++) {
-    if (! opt_quiet)
-      fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
-
-    if (! fgets(buf, sizeof(buf), stdin))
-      fatal("I/O error while reading shares");
-    buf[strcspn(buf, "\r\n")] = '\0';
-    if (! (b = strrchr(buf, '-')))
-      fatal("invalid syntax");
-    *b++ = 0;
-    if ((a = strrchr(buf, '-')))
-      *a++ = 0;
-    else
-      a = buf;
-
-    if (! s) {
-      s = 4 * strlen(b);
-      if (! field_size_valid(s))
-        fatal("share has illegal length");
-      field_init(s);
-    } else if (s != 4 * strlen(b))
-      fatal("shares have different security levels");
-
-    if (! (j = atoi(a)))
-      fatal("invalid share");
-    mpz_set_ui(x, j);
+    mpz_init(y[i]);
+    if (with_secret && i == 0) {
+      /* For recovering purpose treat the secret as a share. */
+      ask_secret(y[i]);
+      s = opt_security;
+      mpz_set_ui(x, 0);
+    } else
+      ask_share(x, y[i], &s, i);
     mpz_init_set_ui(A[opt_threshold - 1][i], 1);
     for(j = opt_threshold - 2; j >= 0; j--) {
       mpz_init(A[j][i]);
       field_mult(A[j][i], A[j + 1][i], x);
     }
-    mpz_init(y[i]);
-    field_import(y[i], b, 1);
     /* Remove x^k term. See comment at top of horner() */
     field_mult(x, x, A[0][i]);
     field_add(y[i], y[i], x);
   }
-  mpz_clear(x);
   if (restore_secret(opt_threshold, A, y, 0))
     fatal("shares inconsistent. Perhaps a single share was used twice");
 
-  if (opt_diffusion) {
-    if (degree >= 64)
-      encode_mpz(y[opt_threshold - 1], DECODE);
-    else
-      warning("security level too small for the diffusion layer");
+  if (! with_secret) {
+    mpz_set(x, y[opt_threshold - 1]);
+    if (opt_diffusion) {
+      if (degree >= 64)
+        encode_mpz(x, DECODE);
+      else
+        warning("security level too small for the diffusion layer");
+    }
+    if (! opt_quiet)
+      fprintf(stderr, "Resulting secret: ");
+    field_print(stdout, x, opt_hex);
   }
-
-  if (! opt_quiet)
-    fprintf(stderr, "Resulting secret: ");
-  field_print(stdout, y[opt_threshold - 1], opt_hex);
+  mpz_clear(x);
+/* TODO: if (opt_recovery) */
 
   for (i = 0; i < opt_threshold; i++) {
     for (j = 0; j < opt_threshold; j++)
@@ -707,7 +725,7 @@ int main(int argc, char *argv[])
     if (opt_threshold < 2)
       fatal("invalid parameters: invalid threshold value");
 
-    combine();
+    combine(0);
   }
   return 0;
 }
