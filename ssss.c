@@ -92,6 +92,8 @@ mpz_t poly;
 int cprng;
 struct termios echo_orig, echo_off;
 
+void secure_zero(void *s, size_t n);
+
 #define mpz_lshift(A, B, l) mpz_mul_2exp(A, B, l)
 #define mpz_sizeinbits(A) (mpz_cmp_ui(A, 0) ? mpz_sizeinbase(A, 2) : 0)
 
@@ -189,6 +191,7 @@ void field_print(FILE* stream, const mpz_t x, int hexmode)
     fprintf(stream, "\n");
     if (warn)
       warning("binary data detected, use -x mode instead");
+    secure_zero(buf, sizeof(buf));
   }
 }
 
@@ -268,9 +271,11 @@ void cprng_read(mpz_t x)
   for(count = 0; count < degree / 8; count += i)
     if ((i = read(cprng, buf + count, degree / 8 - count)) < 0) {
       close(cprng);
+      secure_zero(buf, sizeof(buf));
       fatal("couldn't read from " RANDOM_SOURCE);
     }
   mpz_import(x, degree / 8, 1, 1, 0, 0, buf);
+  secure_zero(buf, sizeof(buf));
 }
 
 /* a 64 bit pseudo random permutation (based on the XTEA cipher) */
@@ -454,16 +459,20 @@ void ask_secret(mpz_t secret)
       fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
-  if (! fgets(buf, sizeof(buf), stdin))
+  if (! fgets(buf, sizeof(buf), stdin)) {
+    secure_zero(buf, sizeof(buf));
     fatal("I/O error while reading secret");
+  }
   tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "\n");
   buf[strcspn(buf, "\r\n")] = '\0';
 
   if (! opt_security) {
     opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
-    if (! field_size_valid(opt_security))
+    if (! field_size_valid(opt_security)) {
+      secure_zero(buf, sizeof(buf));
       fatal("security level invalid (secret too long?)");
+    }
     if (! opt_quiet)
       fprintf(stderr, "Using a %d bit security level.\n", opt_security);
   }
@@ -478,6 +487,8 @@ void ask_secret(mpz_t secret)
     else
       warning("security level too small for the diffusion layer");
   }
+
+  secure_zero(buf, sizeof(buf));
 }
 
 void calculate_shares_r(const mpz_t coeff_rev[]);
@@ -547,11 +558,15 @@ void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
   if (! opt_quiet)
     fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
 
-  if (! fgets(buf, sizeof(buf), stdin))
+  if (! fgets(buf, sizeof(buf), stdin)) {
+    secure_zero(buf, sizeof(buf));
     fatal("I/O error while reading shares");
+  }
   buf[strcspn(buf, "\r\n")] = '\0';
-  if (! (b = strrchr(buf, '-')))
+  if (! (b = strrchr(buf, '-'))) {
+    secure_zero(buf, sizeof(buf));
     fatal("invalid syntax");
+  }
   *b++ = 0;
   if ((a = strrchr(buf, '-')))
     *a++ = 0;
@@ -560,16 +575,24 @@ void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
 
   if (! *s) {
     *s = 4 * strlen(b);
-    if (! field_size_valid(*s))
+    if (! field_size_valid(*s)) {
+      secure_zero(buf, sizeof(buf));
       fatal("share has illegal length");
+    }
     field_init(*s);
-  } else if (*s != 4 * strlen(b))
+  } else if (*s != 4 * strlen(b)) {
+      secure_zero(buf, sizeof(buf));
       fatal("shares have different security levels");
+  }
 
-  if (! (j = atoi(a)))
+  if (! (j = atoi(a))) {
+    secure_zero(buf, sizeof(buf));
     fatal("invalid share");
+  }
   mpz_set_ui(x, j);
   field_import(share, b, 1);
+
+  secure_zero(buf, sizeof(buf));
 }
 
 /* Prompt for shares, calculate the secret, recalculate same shares
@@ -629,6 +652,32 @@ void combine(int with_secret)
   field_deinit();
 }
 
+/* secure memory manipulation functions */
+
+void secure_zero(void *s, size_t n)
+{
+  /* Do not use memset here, see https://www.viva64.com/en/b/0388/ */
+  volatile char *p = s;
+  if (p)
+    while (n--) *p++ = '\0';
+}
+
+void secure_free(void *ptr, size_t size)
+{
+  secure_zero(ptr, size);
+  free(ptr);
+}
+
+void * secure_realloc(void *ptr, size_t old_size, size_t new_size)
+{
+  void *new_ptr = malloc(new_size);
+  if (new_ptr)
+    memcpy(new_ptr, ptr, old_size < new_size ? old_size : new_size);
+  secure_zero(ptr, old_size);
+  free(ptr);
+  return new_ptr;
+}
+
 int main(int argc, char *argv[])
 {
   char *name;
@@ -655,6 +704,8 @@ int main(int argc, char *argv[])
     }
   }
 #endif
+
+  mp_set_memory_functions(NULL, secure_realloc, secure_free);
 
   if (getuid() != geteuid())
     seteuid(getuid());
