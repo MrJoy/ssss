@@ -87,7 +87,7 @@ int opt_number = -1;
 char *opt_token = NULL;
 int opt_recovery = 0;
 
-unsigned int degree;
+unsigned int degree = 0;
 mpz_t poly;
 int cprng;
 struct termios echo_orig, echo_off;
@@ -123,18 +123,21 @@ int field_size_valid(int deg)
 void field_init(int deg)
 {
   assert(field_size_valid(deg));
-  mpz_init_set_ui(poly, 0);
-  mpz_setbit(poly, deg);
-  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 0]);
-  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 1]);
-  mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 2]);
-  mpz_setbit(poly, 0);
-  degree = deg;
+  if (! degree) {
+    mpz_init_set_ui(poly, 0);
+    mpz_setbit(poly, deg);
+    mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 0]);
+    mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 1]);
+    mpz_setbit(poly, irred_coeff[3 * (deg / 8 - 1) + 2]);
+    mpz_setbit(poly, 0);
+    degree = deg;
+  }
 }
 
 void field_deinit(void)
 {
   mpz_clear(poly);
+  degree = 0;
 }
 
 /* I/O routines for GF(2^deg) field elements */
