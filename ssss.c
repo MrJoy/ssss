@@ -355,6 +355,20 @@ void horner(int n, mpz_t y, const mpz_t x, const mpz_t coeff[])
   field_add(y, y, coeff[0]);
 }
 
+/* horner() with reversed coeff[] */
+/* coeff_rev[i] is a coefficient of x^(n - 1 - i) */
+
+void horner_r(int n, mpz_t y, const mpz_t x, const mpz_t coeff_rev[])
+{
+  int i;
+  mpz_set(y, x);
+  for(i = 0; i < n - 1; i++) {
+    field_add(y, y, coeff_rev[i]);
+    field_mult(y, y, x);
+  }
+  field_add(y, y, coeff_rev[i]);
+}
+
 /* calculate the secret from a set of shares solving a linear equation system */
 
 #define MPZ_SWAP(A, B) \
@@ -463,7 +477,7 @@ void ask_secret(mpz_t secret)
   }
 }
 
-void calculate_shares(const mpz_t coeff[]);
+void calculate_shares_r(const mpz_t coeff_rev[]);
 
 /* Prompt for a secret, generate shares for it */
 
@@ -480,17 +494,17 @@ void split(void)
       fprintf(stderr, "dynamic");
     fprintf(stderr, " security level.\n");
   }
-  mpz_init(coeff[0]);
-  ask_secret(coeff[0]);
+  mpz_init(coeff[opt_threshold - 1]);
+  ask_secret(coeff[opt_threshold - 1]);
 
   cprng_init();
-  for(i = 1; i < opt_threshold; i++) {
+  for(i = opt_threshold - 2; i >= 0; i--) {
     mpz_init(coeff[i]);
     cprng_read(coeff[i]);
   }
   cprng_deinit();
 
-  calculate_shares(coeff);
+  calculate_shares_r(coeff);
 
   for(i = 0; i < opt_threshold; i++)
     mpz_clear(coeff[i]);
@@ -499,7 +513,7 @@ void split(void)
 
 /* calculate shares */
 
-void calculate_shares(const mpz_t coeff[])
+void calculate_shares_r(const mpz_t coeff_rev[])
 {
   unsigned int fmt_len;
   mpz_t x, y;
@@ -509,7 +523,7 @@ void calculate_shares(const mpz_t coeff[])
   mpz_init(y);
   for(i = 0; i < opt_number; i++) {
     mpz_set_ui(x, i + 1);
-    horner(opt_threshold, y, x, coeff);
+    horner_r(opt_threshold, y, x, coeff_rev);
     if (opt_token)
       fprintf(stdout, "%s-", opt_token);
     fprintf(stdout, "%0*d-", fmt_len, i + 1);
@@ -561,7 +575,6 @@ void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
 void combine(int with_secret)
 {
   mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
-  mpz_t ry[opt_threshold];
   int i, j;
   unsigned s = 0;
 
@@ -602,16 +615,8 @@ void combine(int with_secret)
     field_print(stdout, x, opt_hex);
   }
   mpz_clear(x);
-  if (opt_recovery) {
-    /* TODO: remove reversing */
-    for (i = 0; i < opt_threshold; i++) {
-      mpz_init(ry[i]);
-      mpz_set(ry[i], y[opt_threshold - 1 - i]);
-    }
-    calculate_shares((const mpz_t*)ry);
-    for (i = 0; i < opt_threshold; i++)
-      mpz_clear(ry[i]);
-  }
+  if (opt_recovery)
+    calculate_shares_r(y);
 
   for (i = 0; i < opt_threshold; i++) {
     for (j = 0; j < opt_threshold; j++)
