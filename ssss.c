@@ -92,6 +92,40 @@ mpz_t poly;
 int cprng;
 struct termios echo_orig, echo_off;
 
+enum ssss_errcode {
+  ssss_ec_ok = 0,
+  ssss_err_input_string_too_long,
+  ssss_err_invalid_syntax,
+  ssss_err_open_random,
+  ssss_err_close_random,
+  ssss_err_read_random,
+  ssss_err_io_reading_secret,
+  ssss_err_invalid_security_level,
+  ssss_err_io_reading_shares,
+  ssss_err_illegal_share_length,
+  ssss_err_shares_different_security_levels,
+  ssss_err_invalid_share,
+  ssss_err_inconsistent_shares,
+  ssss_err_unknown
+};
+
+static const char *ssss_errmsg[] = {
+  "ok",
+  "input string too long",
+  "invalid syntax",
+  "couldn't open " RANDOM_SOURCE,
+  "couldn't close " RANDOM_SOURCE,
+  "couldn't read from " RANDOM_SOURCE,
+  "I/O error while reading secret",
+  "security level invalid (secret too long?)",
+  "I/O error while reading shares",
+  "share has illegal length",
+  "shares have different security levels",
+  "invalid share",
+  "shares inconsistent. Perhaps a single share was used twice",
+  "unknown error"
+};
+
 void secure_zero(void *s, size_t n);
 
 #define mpz_lshift(A, B, l) mpz_mul_2exp(A, B, l)
@@ -99,11 +133,16 @@ void secure_zero(void *s, size_t n);
 
 /* emergency abort and warning functions */
 
-void fatal(char *msg)
+void fatal(const char *msg)
 {
   tcsetattr(0, TCSANOW, &echo_orig);
   fprintf(stderr, "%sFATAL: %s.\n", isatty(2) ? "\a" : "", msg);
   exit(1);
+}
+
+void fatal_errcode(enum ssss_errcode ec)
+{
+  fatal(ssss_errmsg[(ec > ssss_ec_ok && ec < ssss_err_unknown) ? ec : ssss_err_unknown]);
 }
 
 void warning(char *msg)
@@ -143,28 +182,35 @@ void field_deinit(void)
 }
 
 /* I/O routines for GF(2^deg) field elements */
+/* clears x on error */
 
-void field_import(mpz_t x, const char *s, int hexmode)
+enum ssss_errcode field_import(mpz_t x, const char *s, int hexmode)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   if (hexmode) {
     if (strlen(s) > degree / 4)
-      fatal("input string too long");
-    if (strlen(s) < degree / 4)
+      ec = ssss_err_input_string_too_long;
+    else if (strlen(s) < degree / 4)
       warning("input string too short, adding null padding on the left");
-    if (mpz_set_str(x, s, 16) || (mpz_cmp_ui(x, 0) < 0))
-      fatal("invalid syntax");
+    if (ec == ssss_ec_ok && (mpz_set_str(x, s, 16) || (mpz_cmp_ui(x, 0) < 0)))
+      ec = ssss_err_invalid_syntax;
   }
   else {
     int i;
     int warn = 0;
     if (strlen(s) > degree / 8)
-      fatal("input string too long");
-    for(i = strlen(s) - 1; i >= 0; i--)
-      warn = warn || (s[i] < 32) || (s[i] >= 127);
-    if (warn)
-      warning("binary data detected, use -x mode instead");
-    mpz_import(x, strlen(s), 1, 1, 0, 0, s);
+      ec = ssss_err_input_string_too_long;
+    if (ec == ssss_ec_ok) {
+      for(i = strlen(s) - 1; i >= 0; i--)
+        warn = warn || (s[i] < 32) || (s[i] >= 127);
+      if (warn)
+        warning("binary data detected, use -x mode instead");
+      mpz_import(x, strlen(s), 1, 1, 0, 0, s);
+    }
   }
+  if (ec != ssss_ec_ok)
+    mpz_clear(x);
+  return ec;
 }
 
 void field_print(FILE* stream, const mpz_t x, int hexmode)
@@ -251,31 +297,34 @@ void field_invert(mpz_t z, const mpz_t x)
 
 /* routines for the random number generator */
 
-void cprng_init(void)
+enum ssss_errcode cprng_init(void)
 {
-  if ((cprng = open(RANDOM_SOURCE, O_RDONLY)) < 0)
-    fatal("couldn't open " RANDOM_SOURCE);
+  return ((cprng = open(RANDOM_SOURCE, O_RDONLY)) < 0) ?
+    ssss_err_open_random : ssss_ec_ok;
 }
 
-void cprng_deinit(void)
+enum ssss_errcode cprng_deinit(void)
 {
-  if (close(cprng) < 0)
-    fatal("couldn't close " RANDOM_SOURCE);
+  return (close(cprng) < 0) ?
+    ssss_err_close_random : ssss_ec_ok;
 }
 
-void cprng_read(mpz_t x)
+enum ssss_errcode cprng_read(mpz_t x)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   char buf[MAXDEGREE / 8];
   unsigned int count;
   int i;
   for(count = 0; count < degree / 8; count += i)
     if ((i = read(cprng, buf + count, degree / 8 - count)) < 0) {
       close(cprng);
-      secure_zero(buf, sizeof(buf));
-      fatal("couldn't read from " RANDOM_SOURCE);
+      ec = ssss_err_read_random;
+      break;
     }
-  mpz_import(x, degree / 8, 1, 1, 0, 0, buf);
+  if (ec == ssss_ec_ok)
+    mpz_import(x, degree / 8, 1, 1, 0, 0, buf);
   secure_zero(buf, sizeof(buf));
+  return ec;
 }
 
 /* a 64 bit pseudo random permutation (based on the XTEA cipher) */
@@ -445,9 +494,11 @@ int restore_secret(int n,
 }
 
 /* ask for a secret */
+/* clears secret on error */
 
-void ask_secret(mpz_t secret)
+enum ssss_errcode ask_secret(mpz_t secret)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   char buf[MAXLINELEN];
   int deg;
   if (! opt_quiet) {
@@ -459,44 +510,49 @@ void ask_secret(mpz_t secret)
       fprintf(stderr, "at most %d ASCII characters: ", deg / 8);
   }
   tcsetattr(0, TCSANOW, &echo_off);
-  if (! fgets(buf, sizeof(buf), stdin)) {
-    secure_zero(buf, sizeof(buf));
-    fatal("I/O error while reading secret");
-  }
-  tcsetattr(0, TCSANOW, &echo_orig);
-  fprintf(stderr, "\n");
-  buf[strcspn(buf, "\r\n")] = '\0';
+  if (! fgets(buf, sizeof(buf), stdin))
+    ec = ssss_err_io_reading_secret;
+  if (ec == ssss_ec_ok) {
+    tcsetattr(0, TCSANOW, &echo_orig);
+    fprintf(stderr, "\n");
+    buf[strcspn(buf, "\r\n")] = '\0';
 
-  if (! opt_security) {
-    opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
-    if (! field_size_valid(opt_security)) {
-      secure_zero(buf, sizeof(buf));
-      fatal("security level invalid (secret too long?)");
+    if (! opt_security) {
+      opt_security = opt_hex ? 4 * ((strlen(buf) + 1) & ~1): 8 * strlen(buf);
+      if (! field_size_valid(opt_security))
+        ec = ssss_err_invalid_security_level;
+      if (ec == ssss_ec_ok) {
+        if (! opt_quiet)
+          fprintf(stderr, "Using a %d bit security level.\n", opt_security);
+        field_init(opt_security);
+      }
     }
-    if (! opt_quiet)
-      fprintf(stderr, "Using a %d bit security level.\n", opt_security);
   }
 
-  field_init(opt_security);
+  if (ec == ssss_ec_ok)
+    ec = field_import(secret, buf, opt_hex);
+  else
+    mpz_clear(secret);
 
-  field_import(secret, buf, opt_hex);
-
-  if (opt_diffusion) {
-    if (degree >= 64)
-      encode_mpz(secret, ENCODE);
-    else
-      warning("security level too small for the diffusion layer");
-  }
+  if (ec == ssss_ec_ok)
+    if (opt_diffusion) {
+      if (degree >= 64)
+        encode_mpz(secret, ENCODE);
+      else
+        warning("security level too small for the diffusion layer");
+    }
 
   secure_zero(buf, sizeof(buf));
+  return ec;
 }
 
 void calculate_shares_r(const mpz_t coeff_rev[]);
 
 /* Prompt for a secret, generate shares for it */
 
-void split(void)
+enum ssss_errcode split(void)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   mpz_t coeff[opt_threshold];
   int i;
   if (! opt_quiet) {
@@ -508,21 +564,27 @@ void split(void)
       fprintf(stderr, "dynamic");
     fprintf(stderr, " security level.\n");
   }
-  mpz_init(coeff[opt_threshold - 1]);
-  ask_secret(coeff[opt_threshold - 1]);
+  i = opt_threshold - 1;
+  mpz_init(coeff[i]);
+  ec = ask_secret(coeff[i]);
+  i--;
 
-  cprng_init();
-  for(i = opt_threshold - 2; i >= 0; i--) {
+  if (ec == ssss_ec_ok)
+    ec = cprng_init();
+  for(; i >= 0 && ec == ssss_ec_ok; i--) {
     mpz_init(coeff[i]);
-    cprng_read(coeff[i]);
+    ec = cprng_read(coeff[i]);
   }
-  cprng_deinit();
+  if (ec == ssss_ec_ok)
+    ec = cprng_deinit();
 
-  calculate_shares_r(coeff);
+  if (ec == ssss_ec_ok)
+    calculate_shares_r(coeff);
 
-  for(i = 0; i < opt_threshold; i++)
+  for(i = i + 1; i < opt_threshold; i++)
     mpz_clear(coeff[i]);
   field_deinit();
+  return ec;
 }
 
 /* calculate shares */
@@ -548,9 +610,11 @@ void calculate_shares_r(const mpz_t coeff_rev[])
 }
 
 /* ask for i-th share (*s - share size (in/out parameter)) */
+/* clears share on error, but leaves x */
 
-void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
+enum ssss_errcode ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   char buf[MAXLINELEN];
   char *a, *b;
   int j;
@@ -558,48 +622,50 @@ void ask_share(mpz_t x, mpz_t share, unsigned *s, int i)
   if (! opt_quiet)
     fprintf(stderr, "Share [%d/%d]: ", i + 1, opt_threshold);
 
-  if (! fgets(buf, sizeof(buf), stdin)) {
-    secure_zero(buf, sizeof(buf));
-    fatal("I/O error while reading shares");
+  if (! fgets(buf, sizeof(buf), stdin))
+    ec = ssss_err_io_reading_shares;
+  if (ec == ssss_ec_ok) {
+    buf[strcspn(buf, "\r\n")] = '\0';
+    if (! (b = strrchr(buf, '-')))
+      ec = ssss_err_invalid_syntax;
   }
-  buf[strcspn(buf, "\r\n")] = '\0';
-  if (! (b = strrchr(buf, '-'))) {
-    secure_zero(buf, sizeof(buf));
-    fatal("invalid syntax");
-  }
-  *b++ = 0;
-  if ((a = strrchr(buf, '-')))
-    *a++ = 0;
-  else
-    a = buf;
+  if (ec == ssss_ec_ok) {
+    *b++ = 0;
+    if ((a = strrchr(buf, '-')))
+      *a++ = 0;
+    else
+      a = buf;
 
-  if (! *s) {
-    *s = 4 * strlen(b);
-    if (! field_size_valid(*s)) {
-      secure_zero(buf, sizeof(buf));
-      fatal("share has illegal length");
-    }
-    field_init(*s);
-  } else if (*s != 4 * strlen(b)) {
-      secure_zero(buf, sizeof(buf));
-      fatal("shares have different security levels");
+    if (! *s) {
+      *s = 4 * strlen(b);
+      if (! field_size_valid(*s))
+        ec = ssss_err_illegal_share_length;
+      else
+        field_init(*s);
+    } else if (*s != 4 * strlen(b))
+        ec = ssss_err_shares_different_security_levels;
   }
 
-  if (! (j = atoi(a))) {
-    secure_zero(buf, sizeof(buf));
-    fatal("invalid share");
+  if (ec == ssss_ec_ok) {
+    if (! (j = atoi(a)))
+      ec = ssss_err_invalid_share;
   }
-  mpz_set_ui(x, j);
-  field_import(share, b, 1);
+  if (ec == ssss_ec_ok) {
+      mpz_set_ui(x, j);
+      ec = field_import(share, b, 1);
+  } else
+    mpz_clear(share);
 
   secure_zero(buf, sizeof(buf));
+  return ec;
 }
 
 /* Prompt for shares, calculate the secret, recalculate same shares
  * if necessary */
 
-void combine(int with_secret)
+enum ssss_errcode combine(int with_secret)
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   mpz_t A[opt_threshold][opt_threshold], y[opt_threshold], x;
   int i, j;
   unsigned s = 0;
@@ -611,11 +677,16 @@ void combine(int with_secret)
     mpz_init(y[i]);
     if (with_secret && i == 0) {
       /* For recovering purpose treat the secret as a share. */
-      ask_secret(y[i]);
+      ec = ask_secret(y[i]);
+      if (ec != ssss_ec_ok)
+        break;
       s = opt_security;
       mpz_set_ui(x, 0);
-    } else
-      ask_share(x, y[i], &s, i);
+    } else {
+      ec = ask_share(x, y[i], &s, i);
+      if (ec != ssss_ec_ok)
+        break;
+    }
     mpz_init_set_ui(A[opt_threshold - 1][i], 1);
     for(j = opt_threshold - 2; j >= 0; j--) {
       mpz_init(A[j][i]);
@@ -625,31 +696,35 @@ void combine(int with_secret)
     field_mult(x, x, A[0][i]);
     field_add(y[i], y[i], x);
   }
-  if (restore_secret(opt_threshold, A, y, opt_recovery))
-    fatal("shares inconsistent. Perhaps a single share was used twice");
+  if (ec == ssss_ec_ok)
+    if (restore_secret(opt_threshold, A, y, opt_recovery))
+      ec = ssss_err_inconsistent_shares;
 
-  if (! with_secret) {
-    mpz_set(x, y[opt_threshold - 1]);
-    if (opt_diffusion) {
-      if (degree >= 64)
-        encode_mpz(x, DECODE);
-      else
-        warning("security level too small for the diffusion layer");
+  if (ec == ssss_ec_ok) {
+    if (! with_secret) {
+      mpz_set(x, y[opt_threshold - 1]);
+      if (opt_diffusion) {
+        if (degree >= 64)
+          encode_mpz(x, DECODE);
+        else
+          warning("security level too small for the diffusion layer");
+      }
+      if (! opt_quiet)
+        fprintf(stderr, "Resulting secret: ");
+      field_print(stdout, x, opt_hex);
     }
-    if (! opt_quiet)
-      fprintf(stderr, "Resulting secret: ");
-    field_print(stdout, x, opt_hex);
+    if (opt_recovery)
+      calculate_shares_r(y);
   }
-  mpz_clear(x);
-  if (opt_recovery)
-    calculate_shares_r(y);
 
-  for (i = 0; i < opt_threshold; i++) {
-    for (j = 0; j < opt_threshold; j++)
-      mpz_clear(A[i][j]);
+  mpz_clear(x);
+  for (i = i - 1; i >= 0; i--) {
+    for (j = opt_threshold - 1; j >= 0; j--)
+      mpz_clear(A[j][i]);
     mpz_clear(y[i]);
   }
   field_deinit();
+  return ec;
 }
 
 /* secure memory manipulation functions */
@@ -680,6 +755,7 @@ void * secure_realloc(void *ptr, size_t old_size, size_t new_size)
 
 int main(int argc, char *argv[])
 {
+  enum ssss_errcode ec = ssss_ec_ok;
   char *name;
   int i;
 
@@ -779,10 +855,7 @@ int main(int argc, char *argv[])
 
     /* Splitting in recovery mode is the same as combining, where one share
      * is the secret itself. */
-    if (opt_recovery)
-      combine(1);
-    else
-      split();
+    ec = (opt_recovery ? combine(1) : split());
   }
   else {
     if (opt_help || opt_showversion) {
@@ -802,7 +875,9 @@ int main(int argc, char *argv[])
     if (opt_threshold < 2)
       fatal("invalid parameters: invalid threshold value");
 
-    combine(0);
+    ec = combine(0);
   }
+  if (ec != ssss_ec_ok)
+    fatal_errcode(ec);
   return 0;
 }
