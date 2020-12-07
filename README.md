@@ -42,7 +42,7 @@ gpg --keyserver ipv6.pool.sks-keyservers.net --recv-key 7DCB12A7
 
 # Now, clone the repo, and verify it:
 git clone http://github.com/MrJoy/ssss.git
-git tag -v v0.5.7
+git tag -v releases/v0.5.7
 
 # You should see output to the effect of:
 #   gpg: Signature made <date and time> using RSA key ID 7DCB12A7
@@ -51,8 +51,9 @@ git tag -v v0.5.7
 # If you do NOT see 'Good Signature from "Jon Frisby <jfrisby@mrjoy.com>" and
 # the RSA key ID 7DCB12A7 then do not proceed with installation!
 #
-git checkout v0.5.7 # This will put you in 'detached head' mode, which is fine
-                    # but don't make changes as you are no longer on a branch!
+git checkout releases/v0.5.7 # This will put you in 'detached head' mode, which
+                    # is fine but don't make changes as you are no longer on a
+                    # branch!
 # Proceed with build steps from here.  See `INSTALL.md` for details.
 ```
 

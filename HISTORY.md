@@ -4,6 +4,7 @@
 
 * Update README to reflect changes to SKS keyserver.
 * Improve consistency of styling in README and installation guide.
+* Make README reference correct tag names.
 
 
 ## v0.5.6: (February 2017)
