@@ -1,5 +1,11 @@
 # History
 
+## v0.5.7: (December 2020)
+
+* Update README to reflect changes to SKS keyserver.
+* Improve consistency of styling in README and installation guide.
+
+
 ## v0.5.6: (February 2017)
 
 * Switch to using `/dev/urandom`.

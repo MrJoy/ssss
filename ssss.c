@@ -54,7 +54,7 @@
 
 #include <gmp.h>
 
-#define VERSION "0.5.6"
+#define VERSION "0.5.7"
 #define RANDOM_SOURCE "/dev/urandom"
 #define MAXDEGREE 1024
 #define MAXTOKENLEN 128

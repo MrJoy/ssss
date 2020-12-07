@@ -24,12 +24,12 @@
 
 These instructions have been tested on OS X from 10.7 (Lion), through 10.10 (Yosemite).
 
-### Basics:
+### Basics
 
 1. Ensure you have installed the latest XCode, including the Command Line Tools.
 2. Install [MacPorts](http://www.macports.org/), or [HomeBrew](http://mxcl.github.io/homebrew/).
 
-### MacPorts:
+### MacPorts
 
 1. Run `sudo port install gmp` to install `libgmp`.
 2. _TODO: Installation instructions for `xmltoman`, since it's not available via Macports..._
@@ -38,11 +38,11 @@ These instructions have been tested on OS X from 10.7 (Lion), through 10.10 (Yos
 
     `LIBRARY_PATH=$LIBRARY_PATH:/opt/local/lib C_INCLUDE_PATH=$C_INCLUDE_PATH:/opt/local/include make`
 
-### Homebrew:
+### Homebrew
 
 1. Run `brew install gmp xmltoman` to install `libgmp` and `xmltoman`
 2. Run `make`
 
-### Installation:
+### Installation
 
 1. Run `sudo make install`
