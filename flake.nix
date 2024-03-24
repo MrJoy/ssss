@@ -18,7 +18,7 @@
         };
         apps.ssss-split = {
           type = "app";
-          program = "${self.packages.${system}.ssss}/bin/ssss-combine";
+          program = "${self.packages.${system}.ssss}/bin/ssss-split";
         };
       });
 }
