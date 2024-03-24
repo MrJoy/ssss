@@ -2,6 +2,14 @@
 
 Shamir's Secret Sharing Scheme
 
+## Run using Nix
+```sh
+# ssss-split
+nix run 'github:MrJoy/ssss#ssss-split'
+
+# ssss-combine
+nix run 'github:MrJoy/ssss#ssss-combine'
+```
 
 ## History
 
