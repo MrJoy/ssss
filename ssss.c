@@ -524,14 +524,14 @@ enum ssss_errcode ask_secret(mpz_t secret)
       if (ec == ssss_ec_ok) {
         if (! opt_quiet)
           fprintf(stderr, "Using a %d bit security level.\n", opt_security);
-        field_init(opt_security);
       }
     }
   }
 
-  if (ec == ssss_ec_ok)
+  if (ec == ssss_ec_ok) {
+    field_init(opt_security);
     ec = field_import(secret, buf, opt_hex);
-  else
+  } else
     mpz_clear(secret);
 
   if (ec == ssss_ec_ok)
